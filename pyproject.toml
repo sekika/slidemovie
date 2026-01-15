@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "slidemovie"
+version = "0.1.0"
+description = "Markdown and PowerPoint to narration video generator"
+readme = "README.md"
+requires-python = ">=3.8"
+license = "MIT"
+authors = [
+    {name = "Katsutoshi Seki"}
+]
+keywords = ["powerpoint", "markdown", "video", "tts", "presentation", "automation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "Topic :: Office/Business :: Office Suites",
+]
+dependencies = [
+    "multiai-tts",
+    "pptxtoimages"
+]
+
+[project.urls]
+Homepage = "https://sekika.github.io/slidemovie/"
+Source = "https://github.com/sekika/slidemovie"
+
+[project.scripts]
+slidemovie = "slidemovie.cli:main"
+
+[tool.setuptools]
+packages = ["slidemovie"]
