@@ -99,5 +99,5 @@ slidemovie tutorial -s ./content -v
 
 **3. サブプロジェクトを OpenAI の音声でビルド:**
 ```bash
-slidemovie Course101 --sub Lesson01 -v --tts-provider openai --tts-voice alloy
+slidemovie Course101 --sub Lesson01 -v --tts-provider openai --tts-model gpt-4o-mini-tts --no-prompt --tts-voice alloy
 ```
