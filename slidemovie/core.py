@@ -41,6 +41,8 @@ class Movie():
         """
         self._check_external_tools()
         self._load_settings()
+        logging.getLogger("google_genai").setLevel(logging.WARNING)
+        logging.getLogger("httpx").setLevel(logging.WARNING)
 
     def _check_external_tools(self):
         """

@@ -122,6 +122,8 @@ def main():
     if args.debug:
         movie.ffmpeg_loglevel = 'info'
         movie.show_skip = True
+        logging.getLogger("google_genai").setLevel(logging.DEBUG)
+        logging.getLogger("httpx").setLevel(logging.DEBUG)
         logger.setLevel(logging.DEBUG)
         logger.info("Debug mode enabled.")
 
