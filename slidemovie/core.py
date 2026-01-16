@@ -180,6 +180,7 @@ class Movie():
         for key, value in config.items():
             setattr(self, key, value)
 
+
     def configure_project_paths(self, project_name, source_dir, output_root_dir=None, output_filename=None):
         """
         Configures paths for a standard (flat) project structure.
@@ -193,18 +194,35 @@ class Movie():
                                              Defaults to `project_name`.
         """
         # Determine output root directory
+        target_root = None
+        is_automatic_path = False
+
         if output_root_dir:
             target_root = output_root_dir
         elif self.output_root:
             target_root = self.output_root
         else:
             target_root = f'{source_dir}/movie'
+            is_automatic_path = True
         
-        # Expand path and check existence
+        # Expand path
         target_root = os.path.expanduser(target_root)
-        if not os.path.isdir(target_root):
-            logger.error(f'Directory {target_root} does not exist.')
-            sys.exit(1)
+
+        # Handle directory existence
+        if is_automatic_path:
+            # If the path is automatically determined, create it if it doesn't exist
+            if not os.path.isdir(target_root):
+                try:
+                    os.makedirs(target_root, exist_ok=True)
+                    logger.info(f'Created output directory: {target_root}')
+                except OSError as e:
+                    logger.error(f'Failed to create directory {target_root}: {e}')
+                    sys.exit(1)
+        else:
+            # If the path is explicitly specified (CLI or Config), strict check is applied
+            if not os.path.isdir(target_root):
+                logger.error(f'Directory {target_root} does not exist.')
+                sys.exit(1)
 
         # Set member variables
         self.source_dir = source_dir
@@ -226,7 +244,6 @@ class Movie():
         self.slide_file = f'{self.source_dir}/{project_name}.pptx'
         self.video_file = f'{self.movie_dir}/{output_filename}.mp4'
 
-
     def configure_subproject_paths(self, parent_project_name, subproject_name, source_parent_dir, output_root_dir=None, output_filename=None):
         """
         Configures paths for a nested project structure (Parent Folder -> Child Folder).
@@ -239,18 +256,35 @@ class Movie():
             output_filename (str, optional): Filename for the output video (without extension).
         """
         # Determine output root directory
+        target_root = None
+        is_automatic_path = False
+
         if output_root_dir:
             target_root = output_root_dir
         elif self.output_root:
             target_root = self.output_root
         else:
             target_root = f'{source_parent_dir}/movie'
+            is_automatic_path = True
         
-        # Expand path and check existence
+        # Expand path
         target_root = os.path.expanduser(target_root)
-        if not os.path.isdir(target_root):
-            logger.error(f'Directory {target_root} does not exist.')
-            sys.exit(1)
+
+        # Handle directory existence
+        if is_automatic_path:
+            # If the path is automatically determined, create it if it doesn't exist
+            if not os.path.isdir(target_root):
+                try:
+                    os.makedirs(target_root, exist_ok=True)
+                    logger.info(f'Created output directory: {target_root}')
+                except OSError as e:
+                    logger.error(f'Failed to create directory {target_root}: {e}')
+                    sys.exit(1)
+        else:
+            # If the path is explicitly specified (CLI or Config), strict check is applied
+            if not os.path.isdir(target_root):
+                logger.error(f'Directory {target_root} does not exist.')
+                sys.exit(1)
 
         # Source directory is "Parent/Child"
         self.source_dir = f'{source_parent_dir}/{subproject_name}'
