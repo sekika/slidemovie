@@ -79,7 +79,8 @@ def main():
     parser.add_argument("--tts-provider", help="TTS Provider (e.g., google, openai)")
     parser.add_argument("--tts-model", help="TTS Model name")
     parser.add_argument("--tts-voice", help="TTS Voice/Speaker setting")
-    parser.add_argument("--prompt", help="Override TTS system prompt")
+    parser.add_argument("--prompt", help="Override TTS system prompt (automatically enables prompt usage)")
+    parser.add_argument("--no-prompt", action="store_true", help="Disable TTS system prompt")
 
     # --- Other Options ---
     parser.add_argument(
@@ -114,6 +115,9 @@ def main():
         movie.tts_voice = args.tts_voice
     if args.prompt:
         movie.prompt = args.prompt
+        movie.tts_use_prompt = True
+    if args.no_prompt:
+        movie.tts_use_prompt = False
     
     if args.debug:
         movie.ffmpeg_loglevel = 'info'

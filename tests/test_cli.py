@@ -92,3 +92,25 @@ def test_cli_override_tts_options(mock_movie_class):
     assert mock_instance.tts_model == 'gpt-4'
     assert mock_instance.tts_voice == 'alloy'
     assert mock_instance.prompt == 'New System Prompt'
+
+def test_cli_prompt_logic(mock_movie_class):
+    """Test behavior of --prompt and --no-prompt flags."""
+    mock_instance = mock_movie_class.return_value
+
+    # Case 1: --prompt should enable usage and set text
+    args_case1 = ['slidemovie', 'Proj', '--video', '--prompt', 'Custom Prompt']
+    with patch.object(sys, 'argv', args_case1):
+        cli.main()
+    
+    assert mock_instance.prompt == 'Custom Prompt'
+    assert mock_instance.tts_use_prompt is True
+
+    # Case 2: --no-prompt should disable usage
+    # Reset mock for next call
+    mock_movie_class.reset_mock()
+    
+    args_case2 = ['slidemovie', 'Proj', '--video', '--no-prompt']
+    with patch.object(sys, 'argv', args_case2):
+        cli.main()
+        
+    assert mock_instance.tts_use_prompt is False
