@@ -37,7 +37,8 @@ pip install slidemovie
 Homebrew がインストールされていない場合は [brew.sh](https://brew.sh/index_ja) を参照してください。
 
 ```bash
-brew install ffmpeg pandoc libreoffice poppler
+brew install ffmpeg pandoc poppler
+brew install --cask libreoffice
 ```
 
 #### Ubuntu / Debian の場合

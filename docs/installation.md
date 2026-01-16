@@ -36,7 +36,8 @@ This will automatically install the necessary Python dependencies, including `mu
 If you do not have Homebrew installed, please visit [brew.sh](https://brew.sh/).
 
 ```bash
-brew install ffmpeg pandoc libreoffice poppler
+brew install ffmpeg pandoc poppler
+brew install --cask libreoffice
 ```
 
 #### For Ubuntu / Debian
