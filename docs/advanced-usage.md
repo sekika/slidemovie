@@ -7,7 +7,7 @@ parent: Introduction
 
 # Advanced Usage & Internals
 
-This section covers features for power users, including the incremental build system and troubleshooting.
+This section covers features for power users, including the incremental build system, direct state manipulation, and troubleshooting.
 
 ## Incremental Build System
 
@@ -29,6 +29,34 @@ When you run `slidemovie -v`:
 3.  **Check Video**: If the image and audio haven't changed, the MP4 generation for that slide is skipped.
 
 This allows you to fix a typo in slide #10 and regenerate the whole video in seconds, without paying for TTS on slides #1-9.
+
+## Managing State (`status.json`)
+
+The `status.json` file is not just a cache; you can edit it to control generation behavior at a granular level.
+
+### Custom Prompt per Slide
+
+While the `prompt` in `config.json` sets the global system instruction for the TTS engine, you can add specific instructions for individual slides by editing `status.json`.
+
+1.  Run the tool once to generate the initial `status.json`.
+2.  Open `status.json` and find the target slide under the `"slides"` object.
+3.  Locate the `"audio"` section and the `"additional_prompt"` field.
+4.  Enter your custom instruction string.
+
+**Example `status.json` snippet:**
+```json
+"myproject-05": {
+  "title": "Introduction",
+  "audio": {
+    "status": "generated",
+    "wav_file": "myproject-05.wav",
+    "additional_prompt": "Speak this sentence with an excited tone."
+  }
+}
+```
+
+*   **Effect**: When regenerating audio for this slide, the TTS engine will receive: `Global Prompt` + `Additional Prompt` + `Slide Notes`.
+*   **Triggering Regeneration**: After editing `additional_prompt`, you must force regeneration. The easiest way is to change the `"status"` value from `"generated"` to something else (e.g., `"missing"` or `"update"`) in `status.json`.
 
 ## Subprojects (Folder Management)
 
