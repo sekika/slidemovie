@@ -37,8 +37,8 @@ Script for narration.
 When you run the tool, it automatically assigns a stable ID to each slide.
 
 ```markdown
-# My Slide
 <!-- slide-id: myproject-01 -->
+# My Slide
 ```
 
 *   **Purpose**: This ID links the Markdown section to the generated image file (`myproject-01.png`) and audio file (`myproject-01.wav`).
@@ -57,8 +57,8 @@ When you run the tool, it automatically assigns a stable ID to each slide.
 You can replace a static slide with a video file (e.g., a screen recording or demo).
 
 ```markdown
-# Demo Video
 <!-- slide-id: myproject-05 -->
+# Demo Video
 <!-- video-file: demo_clip.mp4 -->
 
 ::: notes
