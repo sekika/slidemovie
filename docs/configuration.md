@@ -15,6 +15,7 @@ The program loads settings in the following order (later sources override earlie
 
 1.  **Built-in Defaults**: Hardcoded in the program.
 2.  **User Config**: `~/.config/slidemovie/config.json` (Home directory).
+    *   **Note**: If this file does not exist, it will be automatically created with default values on the first run.
 3.  **Local Config**: `./config.json` (Current working directory).
 4.  **CLI Arguments**: Command-line flags (highest priority for specific settings).
 
@@ -57,6 +58,8 @@ Here is a complete list of available keys in `config.json`.
 | `silence_sec` | float | `2.5` | Silence duration added before each slide speaks. |
 | `max_retry` | int | `2` | Number of retries if TTS API fails. |
 | `ffmpeg_loglevel`| string | `"error"` | Log verbosity for FFmpeg processes. |
+| `show_skip` | bool | `false` | If `true`, logs "skipped" tasks (unchanged files) to the console. Can be enabled via `--debug`. |
+| `output_root` | string | `null` | Custom root directory for video output. Can be overridden by the `-o` CLI option. |
 
 ## Example `config.json`
 
