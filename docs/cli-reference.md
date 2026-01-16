@@ -20,7 +20,7 @@ slidemovie [PROJECT_NAME] [OPTIONS]
 *   **`PROJECT_NAME`** (Required)
     *   The identifier for your project.
     *   The tool looks for `{PROJECT_NAME}.md` in the source directory.
-    *   If using Subproject Mode (`--sub`), this argument specifies the **Parent** directory name.
+    *   If using Subproject Mode (`--sub`), this argument specifies the **Parent** directory name (used for output categorization).
 
 ## Options
 
@@ -50,15 +50,16 @@ slidemovie [PROJECT_NAME] [OPTIONS]
 *   **`--sub SUB_NAME`**
     *   **Description**: Enables **Hierarchical (Subproject) Mode**.
     *   **Behavior**:
-        *   `PROJECT_NAME` becomes the **Parent** folder.
+        *   `PROJECT_NAME` is used for the output parent folder.
         *   `SUB_NAME` becomes the **Child** folder (Subproject).
-        *   Input Source: `{Parent}/{Child}/{Child}.md`
+        *   Input Source: `{Child}/{Child}.md`
         *   Output Video: `movie/{Parent}/{Child}/{Child}.mp4`
     *   **Example**: `slidemovie Season1 --sub Episode1`
 
 *   **`-o DIR`, `--output-root DIR`**
     *   **Default**: `./movie` (relative to the source directory)
     *   **Description**: Specifies a custom root directory for all generated video artifacts.
+    *   **Note**: This can also be configured via `output_root` in `config.json`. If the directory is not specified or does not exist, the default directory is automatically created.
 
 *   **`-f NAME`, `--filename NAME`**
     *   **Default**: Same as the project ID.
@@ -69,9 +70,10 @@ slidemovie [PROJECT_NAME] [OPTIONS]
 These options override settings defined in `config.json` for the current run only.
 
 *   **`--tts-provider NAME`**: e.g., `google`, `openai`.
-*   **`--tts-model NAME`**: e.g., `gpt-4o`, `gemini-pro`.
-*   **`--tts-voice NAME`**: e.g., `alloy`, `en-US-Neural2-F`.
-*   **`--prompt TEXT`**: Overrides the system prompt used for TTS generation.
+*   **`--tts-model NAME`**: e.g., `gpt-4o-mini-tts`, `gemini-2.5-flash-preview-tts`.
+*   **`--tts-voice NAME`**: e.g., `cedar`, `charon`.
+*   **`--prompt TEXT`**: Overrides the system prompt and enables prompt usage (`tts_use_prompt=True`).
+*   **`--no-prompt`**: Disables the use of a system prompt (`tts_use_prompt=False`).
 
 ### Debugging
 

@@ -21,7 +21,7 @@ slidemovie [プロジェクト名] [オプション]
 *   **`PROJECT_NAME`** (必須)
     *   プロジェクトの識別子（名前）です。
     *   ツールはソースディレクトリ内の `{PROJECT_NAME}.md` を探します。
-    *   サブプロジェクトモード (`--sub`) を使用する場合、この引数は **親フォルダ名** を指定します。
+    *   サブプロジェクトモード (`--sub`) を使用する場合、この引数は **親フォルダ名** （出力の分類用）を指定します。
 
 ## オプション
 
@@ -51,15 +51,16 @@ slidemovie [プロジェクト名] [オプション]
 *   **`--sub SUB_NAME`**
     *   **説明**: **階層構造（サブプロジェクト）モード** を有効にします。
     *   **挙動**:
-        *   `PROJECT_NAME` が **親** フォルダになります。
+        *   `PROJECT_NAME` は出力先の親フォルダ名として使用されます。
         *   `SUB_NAME` が **子** フォルダ（サブプロジェクト）になります。
-        *   入力ソース: `{Parent}/{Child}/{Child}.md`
+        *   入力ソース: `{Child}/{Child}.md`
         *   出力動画: `movie/{Parent}/{Child}/{Child}.mp4`
     *   **例**: `slidemovie Season1 --sub Episode1`
 
 *   **`-o DIR`, `--output-root DIR`**
     *   **デフォルト**: `./movie` (ソースディレクトリからの相対パス)
     *   **説明**: 生成されたすべての動画成果物を出力するルートディレクトリを指定します。
+    *   **注意**: 設定ファイルの `output_root` でも指定可能です。指定されたディレクトリが存在しない場合は、デフォルトのディレクトリが自動的に作成されます。
 
 *   **`-f NAME`, `--filename NAME`**
     *   **デフォルト**: プロジェクトIDと同じ。
@@ -70,9 +71,10 @@ slidemovie [プロジェクト名] [オプション]
 これらのオプションは、`config.json` の設定を **今回の実行に限り** 上書きします。
 
 *   **`--tts-provider NAME`**: 例: `google`, `openai`
-*   **`--tts-model NAME`**: 例: `gpt-4o`, `gemini-pro`
-*   **`--tts-voice NAME`**: 例: `alloy`, `en-US-Neural2-F`
-*   **`--prompt TEXT`**: TTS 生成時に使用するシステムプロンプトを上書きします。
+*   **`--tts-model NAME`**: 例: `gpt-4o-mini-tts`, `gemini-2.5-flash-preview-tts`
+*   **`--tts-voice NAME`**: 例: `cedar`, `charon`
+*   **`--prompt TEXT`**: TTS生成時のシステムプロンプトを上書きし、プロンプトの使用を有効にします (`tts_use_prompt=True`)。
+*   **`--no-prompt`**: システムプロンプトの使用を無効にします (`tts_use_prompt=False`)。
 
 ### デバッグ
 
