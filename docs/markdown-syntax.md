@@ -45,6 +45,13 @@ When you run the tool, it automatically assigns a stable ID to each slide.
 *   **Auto-Generation**: If you don't write this, `slidemovie` inserts it automatically on the first run.
 *   **Best Practice**: Do not modify these manually once generated, or you might lose synchronization with existing assets.
 
+#### Managing Slides and IDs
+
+*   **Inserting a New Slide**: Write the new slide content (header, notes) **without** a `slide-id`. `slidemovie` will automatically assign a new, unique ID upon the next execution.
+*   **Reordering Slides**: If you want to change the order, move the **entire block including the `slide-id`**.
+*   **Order**: The final video follows the order of slides in the Markdown file, **not** the alphanumeric order of the Slide IDs.
+*   **Validation**: Duplicate Slide IDs are not allowed. If detected, the program will exit with an error.
+
 ### 2. Video Insertion (`<!-- video-file: ... -->`)
 
 You can replace a static slide with a video file (e.g., a screen recording or demo).
