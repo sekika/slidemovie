@@ -73,17 +73,22 @@ You can replace a static slide with a video file (e.g., a screen recording or de
 The `::: notes` block is passed directly to the TTS engine.
 
 1.  **Empty Line**: Always leave an empty line before `::: notes`.
-    *   **Good**:
-        ```markdown
-        - item
-        
-        ::: notes
-        ```
-    *   **Bad**:
-        ```markdown
-        - item
-        ::: notes
-        ```
+
+Good:
+
+```markdown
+- item
+
+::: notes
+````
+
+Bad:
+
+```markdown
+- item
+::: notes
+```
+
 2.  **Plain Text**: Write the script as you want it spoken. Avoid Markdown formatting (like `**bold**`) inside the notes block unless you are sure the TTS engine ignores it.
 
 ```markdown
