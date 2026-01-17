@@ -817,7 +817,7 @@ class Movie():
             stripped_line = line.strip()
 
             # If it's a header line
-            if stripped_line.startswith("#"):
+            if stripped_line.startswith("# "):
 
                 # Check if the previous non-empty line was an ID
                 has_id = False
