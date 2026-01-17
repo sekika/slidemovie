@@ -59,7 +59,7 @@ slidemovie [PROJECT_NAME] [OPTIONS]
 *   **`-o DIR`, `--output-root DIR`**
     *   **Default**: `./movie` (relative to the source directory)
     *   **Description**: Specifies a custom root directory for all generated video artifacts.
-    *   **Note**: This can also be configured via `output_root` in `config.json`. If the directory is not specified or does not exist, the default directory is automatically created.
+    *   **Note**: This can also be configured via `output_root` in `config.json`. If the specified directory does not exist, an error will occur if `output_root` is explicitly set. If it is not set, the default directory will be created automatically.
 
 *   **`-f NAME`, `--filename NAME`**
     *   **Default**: Same as the project ID.
