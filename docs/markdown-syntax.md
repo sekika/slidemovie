@@ -61,9 +61,8 @@ You can replace a static slide with a video file (e.g., a screen recording or de
 # Demo Video
 <!-- video-file: demo_clip.mp4 -->
 
-::: notes
-(This part is ignored if a video file is provided, OR used for timing depending on implementation. Usually, the duration of the inserted video takes precedence.)
-:::
+- demo_clip.mp4 is shown here.
+- PowerPoint slide is created but it will not be used in a final movie.
 ```
 
 *   **Usage**: Place the `demo_clip.mp4` file inside the `movie/{project_name}/` directory.
