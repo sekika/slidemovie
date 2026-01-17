@@ -39,7 +39,7 @@
 pip install slidemovie
 ```
 
-*Note: You also need to install **FFmpeg**, **Pandoc**, **LibreOffice**, and **Poppler**, and set up your **AI API Key** (Google or OpenAI). See the [documentation](https://sekika.github.io/slidemovie/installation.html) for details.*
+*Note: You also need to install **FFmpeg**, **Pandoc**, **LibreOffice**, and **Poppler**, and set up your **AI API Key** (Google or OpenAI). See the [documentation](https://sekika.github.io/slidemovie/installation/) for details.*
 
 ### 2. Create a Project
 
