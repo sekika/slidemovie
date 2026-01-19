@@ -60,6 +60,7 @@ Here is a complete list of available keys in `config.json`.
 | `ffmpeg_loglevel`| string | `"error"` | Log verbosity for FFmpeg processes. |
 | `show_skip` | bool | `false` | If `true`, logs "skipped" tasks (unchanged files) to the console. Can be enabled via `--debug`. |
 | `output_root` | string | `null` | Custom root directory for video output. Can be overridden by the `-o` CLI option. |
+| `output_filename` | string | `null` | Output video filename (without extension). Defaults to project ID. Can be overridden by the `-f` CLI option. |
 
 ## Example `config.json`
 
