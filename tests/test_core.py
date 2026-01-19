@@ -27,28 +27,26 @@ def movie(mock_tools):
     """Fixture to create a Movie instance."""
     m = Movie()
     # Reset output_root to None to ensure tests rely on the source_dir structure
-    # and ignore any user-defined 'output_root' in local config.json.
     m.output_root = None
+    # Ensure output_filename is None by default (mimic init state)
+    m.output_filename = None
     return m
 
 class TestMovieConfig:
     def test_default_settings(self, movie):
         """Test if settings are loaded (checking key existence)."""
-        # We check existence because actual values might be overridden by local config
         assert hasattr(movie, 'tts_provider')
         assert hasattr(movie, 'screen_size')
+        # [Fix] Check for output_filename
+        assert hasattr(movie, 'output_filename')
 
     def test_load_settings_override(self, mock_tools, tmp_path):
         """Test overriding settings via config.json logic."""
-        # Note: Since _load_settings is called in __init__, testing exact loading
-        # behavior without mocking open() globally is complex. 
-        # Here we just verify the instance attributes can be set.
         pass 
 
 class TestPathConfiguration:
     def test_configure_project_paths_flat(self, movie, tmp_path):
         """Test path configuration for standard (flat) mode."""
-        # Ensure output_root is None so it falls back to source_dir/movie
         movie.output_root = None
         
         source_dir = tmp_path / "src"
@@ -66,6 +64,26 @@ class TestPathConfiguration:
         expected_movie_dir = source_dir / "movie" / "test_proj"
         assert movie.movie_dir == str(expected_movie_dir)
         assert os.path.exists(movie.movie_dir)
+        
+        # [Fix] Verify default video filename (same as project name)
+        assert movie.video_file.endswith("test_proj.mp4")
+
+    def test_configure_project_paths_with_custom_filename(self, movie, tmp_path):
+        """Test path configuration with custom output_filename attribute set."""
+        source_dir = tmp_path / "src"
+        source_dir.mkdir()
+        
+        # Manually set the attribute (as CLI or Config would do)
+        movie.output_filename = "custom_output_name"
+        
+        movie.configure_project_paths(
+            project_name="test_proj",
+            source_dir=str(source_dir)
+        )
+        
+        # Verify the filename uses the custom name, not project name
+        assert movie.video_file.endswith("custom_output_name.mp4")
+        assert "test_proj.mp4" not in movie.video_file
 
     def test_configure_subproject_paths(self, movie, tmp_path):
         """Test path configuration for subproject (Parent/Child) mode."""
@@ -86,6 +104,9 @@ class TestPathConfiguration:
         # Output: parent/movie/parent_proj/child_sub
         expected_movie_dir = parent_dir / "movie" / "parent_proj" / "child_sub"
         assert movie.movie_dir == str(expected_movie_dir)
+        
+        # [Fix] Verify default filename (Parent-Child)
+        assert movie.video_file.endswith("parent_proj-child_sub.mp4")
 
 class TestMarkdownProcessing:
     def test_ensure_slide_ids(self, movie, tmp_path):
@@ -147,7 +168,7 @@ class TestBuildLogic:
         movie.slide_file = str(tmp_path / "test.pptx")
         movie.source_dir = str(tmp_path)
         
-        # [Fix] Manually set project_id as it is required by _init_audio_state
+        # Manually set project_id as it is required by _init_audio_state
         movie.project_id = "test_project"
         
         # Mock status file

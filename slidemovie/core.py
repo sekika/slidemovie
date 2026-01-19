@@ -86,6 +86,7 @@ class Movie():
             show_skip (bool): Whether to log skipped tasks. Default: False.
             max_retry (int): Max retries for TTS API errors. Default: 2.
             output_root (str): Root directory for video output. Default: None.
+            output_filename (str): Output video filename (without extension). Default: None (Uses project ID).
         """
         return {
             # TTS settings
@@ -116,8 +117,9 @@ class Movie():
             "show_skip": False,
             "max_retry": 2,
 
-            # Output path setting (Used if not provided via CLI)
-            "output_root": None
+            # Output path settings (Used if not provided via CLI)
+            "output_root": None,
+            "output_filename": None
         }
 
     def _load_settings(self):
@@ -182,8 +184,7 @@ class Movie():
         for key, value in config.items():
             setattr(self, key, value)
 
-
-    def configure_project_paths(self, project_name, source_dir, output_root_dir=None, output_filename=None):
+    def configure_project_paths(self, project_name, source_dir, output_root_dir=None):
         """
         Configures paths for a standard (flat) project structure.
         
@@ -192,8 +193,6 @@ class Movie():
             source_dir (str): The directory containing source files (.md, .pptx).
             output_root_dir (str, optional): Root directory for video output. 
                                              Defaults to `self.output_root` or `{source_dir}/movie`.
-            output_filename (str, optional): Filename for the output video (without extension).
-                                             Defaults to `project_name`.
         """
         # Determine output root directory
         target_root = None
@@ -230,8 +229,9 @@ class Movie():
         self.source_dir = source_dir
         self.project_id = project_name
         
-        if not output_filename:
-            output_filename = project_name
+        # Determine output filename
+        # Priority: self.output_filename (Config/CLI) > project_name (Default)
+        final_filename = self.output_filename if self.output_filename else project_name
 
         # Construct file paths
         self.md_file = f'{self.source_dir}/{project_name}.md'
@@ -244,9 +244,9 @@ class Movie():
             os.mkdir(self.movie_dir)
 
         self.slide_file = f'{self.source_dir}/{project_name}.pptx'
-        self.video_file = f'{self.movie_dir}/{output_filename}.mp4'
+        self.video_file = f'{self.movie_dir}/{final_filename}.mp4'
 
-    def configure_subproject_paths(self, parent_project_name, subproject_name, source_parent_dir, output_root_dir=None, output_filename=None):
+    def configure_subproject_paths(self, parent_project_name, subproject_name, source_parent_dir, output_root_dir=None):
         """
         Configures paths for a nested project structure (Parent Folder -> Child Folder).
         
@@ -255,7 +255,6 @@ class Movie():
             subproject_name (str): The name of the subproject (child folder name).
             source_parent_dir (str): The directory containing the parent project folder.
             output_root_dir (str, optional): Root directory for video output.
-            output_filename (str, optional): Filename for the output video (without extension).
         """
         # Determine output root directory
         target_root = None
@@ -294,8 +293,9 @@ class Movie():
         # Project ID format: "Parent-Child"
         self.project_id = f'{parent_project_name}-{subproject_name}'
         
-        if not output_filename:
-            output_filename = self.project_id
+        # Determine output filename
+        # Priority: self.output_filename (Config/CLI) > self.project_id (Default)
+        final_filename = self.output_filename if self.output_filename else self.project_id
 
         # Construct file paths
         self.md_file = f'{self.source_dir}/{subproject_name}.md'
@@ -312,7 +312,7 @@ class Movie():
             os.mkdir(self.movie_dir)
 
         self.slide_file = f'{self.source_dir}/{subproject_name}.pptx'
-        self.video_file = f'{self.movie_dir}/{output_filename}.mp4'
+        self.video_file = f'{self.movie_dir}/{final_filename}.mp4'
 
     def build_all(self):
         """

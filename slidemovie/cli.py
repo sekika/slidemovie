@@ -118,6 +118,8 @@ def main():
         movie.tts_use_prompt = True
     if args.no_prompt:
         movie.tts_use_prompt = False
+    if args.filename:
+        movie.output_filename = args.filename
     
     if args.debug:
         movie.ffmpeg_loglevel = 'info'
@@ -136,8 +138,7 @@ def main():
                 parent_project_name=args.project_name,
                 subproject_name=args.sub,
                 source_parent_dir=args.source_dir,
-                output_root_dir=args.output_root,
-                output_filename=args.filename
+                output_root_dir=args.output_root
             )
         else:
             # Standard Mode (Flat)
@@ -145,8 +146,7 @@ def main():
             movie.configure_project_paths(
                 project_name=args.project_name,
                 source_dir=args.source_dir,
-                output_root_dir=args.output_root,
-                output_filename=args.filename
+                output_root_dir=args.output_root
             )
     except Exception as e:
         logger.error(f"Failed to configure paths: {e}")

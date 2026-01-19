@@ -36,11 +36,11 @@ def test_cli_pptx_mode(mock_movie_class):
     mock_movie_class.assert_called_once()
     
     # Check if default path configuration was called (Flat mode)
+    # [Fix] output_filename argument removed from call signature
     mock_instance.configure_project_paths.assert_called_with(
         project_name='MyProject',
         source_dir='.',
-        output_root_dir=None,
-        output_filename=None
+        output_root_dir=None
     )
     
     # Check if correct build method was called
@@ -62,16 +62,28 @@ def test_cli_video_mode_subproject(mock_movie_class):
     assert mock_instance.show_skip is True
     
     # Verify subproject path configuration
+    # [Fix] output_filename argument removed from call signature
     mock_instance.configure_subproject_paths.assert_called_with(
         parent_project_name='ParentProj',
         subproject_name='ChildProj',
         source_parent_dir='.',
-        output_root_dir=None,
-        output_filename=None
+        output_root_dir=None
     )
     
     # Verify build_all was called
     mock_instance.build_all.assert_called_once()
+
+def test_cli_filename_argument(mock_movie_class):
+    """Test if -f/--filename argument sets the movie attribute correctly."""
+    # Test short flag -f
+    test_args = ['slidemovie', 'Proj', '--video', '-f', 'custom_name']
+    
+    mock_instance = mock_movie_class.return_value
+    
+    with patch.object(sys, 'argv', test_args):
+        cli.main()
+        
+    assert mock_instance.output_filename == 'custom_name'
 
 def test_cli_override_tts_options(mock_movie_class):
     """Test if CLI arguments override TTS configuration."""
