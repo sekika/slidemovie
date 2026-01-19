@@ -55,8 +55,24 @@ sudo apt install ffmpeg pandoc libreoffice poppler-utils
 
 ## 3. AI APIキーの設定
 
-`slidemovie` は `multiai-tts` ライブラリを使用してナレーション音声を生成します。使用したい AI プロバイダー（Google Gemini または OpenAI）の API キーを用意する必要があります。
+`slidemovie` は `multiai-tts` ライブラリを使用してナレーション音声を生成します。モデルの選択と API キーの設定が必要です。
 
-設定方法の詳細については、**[multiai の公式ドキュメント](https://sekika.github.io/multiai/)** を参照してください。
+### 1. TTS モデルの選択
 
-> **注意:** 正しい API キーが設定されていない場合、音声生成のステップでエラーとなります。
+まず、引数なしで `slidemovie` コマンドを実行してください。
+
+```bash
+slidemovie
+```
+
+オプションがないためエラーが出ますが、**これは想定された動作です**。この実行により、デフォルトの設定ファイルが `~/.config/slidemovie/config.json` に自動作成されます。
+
+次に、**[設定ファイル](../configuration/)** のページを参考にこのファイルを編集し、`tts_provider`, `tts_model`, `tts_voice` の項目を変更して、使用する TTS モデルを設定してください。
+
+### 2. API キーの設定
+
+モデルの選択は設定ファイルで行いますが、**API キー** の設定は multiai の設定に従います。
+
+API キーの設定方法については、**[multiai の公式ドキュメント](https://sekika.github.io/multiai/)** の指示に従ってください。
+
+> **注意:** 選択したプロバイダー（Google Gemini または OpenAI）に対応する正しい API キーが設定されていない場合、音声生成のステップで失敗します。

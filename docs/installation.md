@@ -54,8 +54,26 @@ sudo apt install ffmpeg pandoc libreoffice poppler-utils
 
 ## 3. Setup AI API Keys
 
-`slidemovie` uses the `multiai-tts` library to generate narration audio. You must provide an API key for the AI provider you wish to use (Google Gemini or OpenAI).
+`slidemovie` uses the `multiai-tts` library to generate narration audio. You need to configure the model selection and the API keys.
 
-Please refer to the official **[multiai documentation](https://sekika.github.io/multiai/)** for detailed instructions on how to configure these settings.
+### 1. Select the TTS Model
 
-> **Note:** Without a valid API key configuration, the audio generation step will fail.
+First, run the `slidemovie` command without any arguments:
+
+```bash
+slidemovie
+```
+
+Since no options are provided, this will result in an error. **This is expected behavior.** By running this command, a default configuration file is automatically created at:
+
+`~/.config/slidemovie/config.json`
+
+Next, please refer to the **[Configuration](../configuration/)** page. Edit the `tts_provider`, `tts_model`, and `tts_voice` settings in this file to select the Text-to-Speech model you wish to use.
+
+### 2. Configure API Credentials
+
+The configuration file handles model selection, but the API Key configuration follows the multiai settings.
+
+Please refer to the official **[multiai documentation](https://sekika.github.io/multiai/)** for detailed instructions on how to configure your API keys.
+
+> **Note:** Without a valid API key configuration matching your selected provider (Google Gemini or OpenAI), the audio generation step will fail.
