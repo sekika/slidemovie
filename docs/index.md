@@ -32,4 +32,4 @@ The process creates a synergy between automation and human design:
 *   **No Video Editing Required**: The timing of the video is automatically adjusted to match the length of the narration.
 *   **Incremental Builds**: If you change a single slide's script, the tool only regenerates that specific part, saving time and API costs.
 
-Please proceed to the **[Installation](./installation.html)** page to get started.
+Please proceed to the **[Installation](./installation/)** page to get started.
