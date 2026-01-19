@@ -14,6 +14,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 def main():
     """
     Entry point for the slidemovie command-line tool.
@@ -76,11 +77,18 @@ def main():
     )
 
     # --- TTS Settings Options (CLI Overrides) ---
-    parser.add_argument("--tts-provider", help="TTS Provider (e.g., google, openai)")
+    parser.add_argument(
+        "--tts-provider",
+        help="TTS Provider (e.g., google, openai)")
     parser.add_argument("--tts-model", help="TTS Model name")
     parser.add_argument("--tts-voice", help="TTS Voice/Speaker setting")
-    parser.add_argument("--prompt", help="Override TTS system prompt (automatically enables prompt usage)")
-    parser.add_argument("--no-prompt", action="store_true", help="Disable TTS system prompt")
+    parser.add_argument(
+        "--prompt",
+        help="Override TTS system prompt (automatically enables prompt usage)")
+    parser.add_argument(
+        "--no-prompt",
+        action="store_true",
+        help="Disable TTS system prompt")
 
     # --- Other Options ---
     parser.add_argument(
@@ -93,7 +101,8 @@ def main():
     try:
         movie = slidemovie.Movie()
     except NameError:
-        logger.error("Movie class is not defined. Make sure to import it correctly.")
+        logger.error(
+            "Movie class is not defined. Make sure to import it correctly.")
         sys.exit(1)
     except Exception as e:
         logger.error(f"Failed to initialize Movie class: {e}")
@@ -120,7 +129,7 @@ def main():
         movie.tts_use_prompt = False
     if args.filename:
         movie.output_filename = args.filename
-    
+
     if args.debug:
         movie.ffmpeg_loglevel = 'info'
         movie.show_skip = True
@@ -133,7 +142,8 @@ def main():
     try:
         if args.sub:
             # Hierarchical Mode (Parent/Child)
-            logger.info(f"Configuring subproject paths: {args.project_name}/{args.sub}")
+            logger.info(
+                f"Configuring subproject paths: {args.project_name}/{args.sub}")
             movie.configure_subproject_paths(
                 parent_project_name=args.project_name,
                 subproject_name=args.sub,
@@ -162,7 +172,8 @@ def main():
         movie.build_slide_pptx()
         logger.info("PPTX generation process finished.")
         if not args.video:
-            logger.info("Please edit the generated PPTX file and run with --video to create the movie.")
+            logger.info(
+                "Please edit the generated PPTX file and run with --video to create the movie.")
 
     # Generate Video (--video)
     if args.video:
@@ -170,8 +181,9 @@ def main():
         logger.info("MODE: Build All Video Assets")
         logger.info("=" * 60)
         movie.build_all()
-        
+
         logger.info("All video processes finished.")
+
 
 if __name__ == "__main__":
     main()

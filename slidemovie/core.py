@@ -14,6 +14,7 @@ from datetime import datetime
 # Configure module logger
 logger = logging.getLogger(__name__)
 
+
 class Movie():
     """
     A class to automatically generate narration videos based on PowerPoint slides and Markdown notes.
@@ -55,10 +56,12 @@ class Movie():
             - pandoc
         """
         required_tools = ['ffmpeg', 'ffprobe', 'pandoc']
-        missing_tools = [tool for tool in required_tools if not shutil.which(tool)]
-        
+        missing_tools = [
+            tool for tool in required_tools if not shutil.which(tool)]
+
         if missing_tools:
-            logger.error(f"Required external commands not found: {', '.join(missing_tools)}")
+            logger.error(
+                f"Required external commands not found: {', '.join(missing_tools)}")
             logger.error("Please install them before running this tool.")
             sys.exit(1)
 
@@ -125,11 +128,11 @@ class Movie():
     def _load_settings(self):
         """
         Loads settings from JSON files and merges them with defaults.
-        
+
         It looks for configuration in:
         1. ~/.config/slidemovie/config.json
         2. ./config.json
-        
+
         Finally, it sets the configuration values as instance attributes.
         """
         # 1. Get default settings
@@ -141,10 +144,11 @@ class Movie():
             try:
                 os.makedirs(config_dir, exist_ok=True)
             except OSError as e:
-                logger.warning(f"Failed to create config directory {config_dir}: {e}")
+                logger.warning(
+                    f"Failed to create config directory {config_dir}: {e}")
 
         home_config_path = os.path.join(config_dir, "config.json")
-        
+
         if not os.path.exists(home_config_path):
             # Create default config file if it doesn't exist
             try:
@@ -164,7 +168,7 @@ class Movie():
 
         # 3. Process ./config.json (Current directory)
         local_config_path = "./config.json"
-        
+
         if os.path.exists(local_config_path):
             try:
                 with open(local_config_path, 'r', encoding='utf-8') as f:
@@ -175,7 +179,7 @@ class Movie():
                 logger.warning(f"Failed to load {local_config_path}: {e}")
 
         # 4. Set attributes
-        
+
         # Special handling: Convert screen_size from list to tuple
         if "screen_size" in config and isinstance(config["screen_size"], list):
             config["screen_size"] = tuple(config["screen_size"])
@@ -184,14 +188,15 @@ class Movie():
         for key, value in config.items():
             setattr(self, key, value)
 
-    def configure_project_paths(self, project_name, source_dir, output_root_dir=None):
+    def configure_project_paths(
+            self, project_name, source_dir, output_root_dir=None):
         """
         Configures paths for a standard (flat) project structure.
-        
+
         Args:
             project_name (str): The name/ID of the project.
             source_dir (str): The directory containing source files (.md, .pptx).
-            output_root_dir (str, optional): Root directory for video output. 
+            output_root_dir (str, optional): Root directory for video output.
                                              Defaults to `self.output_root` or `{source_dir}/movie`.
         """
         # Determine output root directory
@@ -205,22 +210,25 @@ class Movie():
         else:
             target_root = f'{source_dir}/movie'
             is_automatic_path = True
-        
+
         # Expand path
         target_root = os.path.expanduser(target_root)
 
         # Handle directory existence
         if is_automatic_path:
-            # If the path is automatically determined, create it if it doesn't exist
+            # If the path is automatically determined, create it if it doesn't
+            # exist
             if not os.path.isdir(target_root):
                 try:
                     os.makedirs(target_root, exist_ok=True)
                     logger.info(f'Created output directory: {target_root}')
                 except OSError as e:
-                    logger.error(f'Failed to create directory {target_root}: {e}')
+                    logger.error(
+                        f'Failed to create directory {target_root}: {e}')
                     sys.exit(1)
         else:
-            # If the path is explicitly specified (CLI or Config), strict check is applied
+            # If the path is explicitly specified (CLI or Config), strict check
+            # is applied
             if not os.path.isdir(target_root):
                 logger.error(f'Directory {target_root} does not exist.')
                 sys.exit(1)
@@ -228,7 +236,7 @@ class Movie():
         # Set member variables
         self.source_dir = source_dir
         self.project_id = project_name
-        
+
         # Determine output filename
         # Priority: self.output_filename (Config/CLI) > project_name (Default)
         final_filename = self.output_filename if self.output_filename else project_name
@@ -237,7 +245,7 @@ class Movie():
         self.md_file = f'{self.source_dir}/{project_name}.md'
         self.status_file = f'{self.source_dir}/status.json'
         self.video_length_file = f'{self.source_dir}/video_length.csv'
-        
+
         # Create intermediate/output directories
         self.movie_dir = f'{target_root}/{project_name}'
         if not os.path.isdir(self.movie_dir):
@@ -246,10 +254,11 @@ class Movie():
         self.slide_file = f'{self.source_dir}/{project_name}.pptx'
         self.video_file = f'{self.movie_dir}/{final_filename}.mp4'
 
-    def configure_subproject_paths(self, parent_project_name, subproject_name, source_parent_dir, output_root_dir=None):
+    def configure_subproject_paths(
+            self, parent_project_name, subproject_name, source_parent_dir, output_root_dir=None):
         """
         Configures paths for a nested project structure (Parent Folder -> Child Folder).
-        
+
         Args:
             parent_project_name (str): The name of the parent project.
             subproject_name (str): The name of the subproject (child folder name).
@@ -267,32 +276,35 @@ class Movie():
         else:
             target_root = f'{source_parent_dir}/movie'
             is_automatic_path = True
-        
+
         # Expand path
         target_root = os.path.expanduser(target_root)
 
         # Handle directory existence
         if is_automatic_path:
-            # If the path is automatically determined, create it if it doesn't exist
+            # If the path is automatically determined, create it if it doesn't
+            # exist
             if not os.path.isdir(target_root):
                 try:
                     os.makedirs(target_root, exist_ok=True)
                     logger.info(f'Created output directory: {target_root}')
                 except OSError as e:
-                    logger.error(f'Failed to create directory {target_root}: {e}')
+                    logger.error(
+                        f'Failed to create directory {target_root}: {e}')
                     sys.exit(1)
         else:
-            # If the path is explicitly specified (CLI or Config), strict check is applied
+            # If the path is explicitly specified (CLI or Config), strict check
+            # is applied
             if not os.path.isdir(target_root):
                 logger.error(f'Directory {target_root} does not exist.')
                 sys.exit(1)
 
         # Source directory is "Parent/Child"
         self.source_dir = f'{source_parent_dir}/{subproject_name}'
-        
+
         # Project ID format: "Parent-Child"
         self.project_id = f'{parent_project_name}-{subproject_name}'
-        
+
         # Determine output filename
         # Priority: self.output_filename (Config/CLI) > self.project_id (Default)
         final_filename = self.output_filename if self.output_filename else self.project_id
@@ -301,11 +313,11 @@ class Movie():
         self.md_file = f'{self.source_dir}/{subproject_name}.md'
         self.status_file = f'{self.source_dir}/status.json'
         self.video_length_file = f'{self.source_dir}/video_length.csv'
-        
+
         # Create output directory hierarchy (movie/parent/child)
         parent_movie_dir = f'{target_root}/{parent_project_name}'
         self.movie_dir = f'{parent_movie_dir}/{subproject_name}'
-        
+
         if not os.path.isdir(parent_movie_dir):
             os.mkdir(parent_movie_dir)
         if not os.path.isdir(self.movie_dir):
@@ -317,15 +329,15 @@ class Movie():
     def build_all(self):
         """
         Orchestrates the creation of the complete video from Markdown and PPTX files.
-        
-        Note: This does not update the PPTX file from Markdown. 
+
+        Note: This does not update the PPTX file from Markdown.
         Run `build_slide_pptx()` beforehand if necessary.
         """
         self._check_external_tools()
         if not os.path.isfile(self.md_file):
             logger.error(f'{self.md_file} does not exist.')
             sys.exit(1)
-            
+
         # 1. Generate narration audio from Markdown notes
         self.build_slide_audio()
         # 2. Generate slide images from PPTX
@@ -375,7 +387,8 @@ class Movie():
                 audio_state["wav_file"]
             )
 
-            # Regeneration check (Status mismatch OR Hash mismatch OR File missing)
+            # Regeneration check (Status mismatch OR Hash mismatch OR File
+            # missing)
             if (audio_status != "generated" or
                 saved_notes_hash != current_notes_hash or
                     not os.path.isfile(wav_path)):
@@ -384,7 +397,8 @@ class Movie():
 
                 add_prompt = audio_state.get("additional_prompt", "")
                 if norm == "":
-                    logger.error(f'Error: "::: notes" not found in {slide_id}.')
+                    logger.error(
+                        f'Error: "::: notes" not found in {slide_id}.')
                     sys.exit()
                 self._speak_to_wav(
                     norm, wav_path, additional_prompt=add_prompt)
@@ -533,7 +547,8 @@ class Movie():
                             f"[SKIP] {slide_id} (Video: unchanged/Source:{video_file_src})")
                     continue
 
-                logger.info(f"Converting video: {video_file_src} -> {slide_id}.mp4")
+                logger.info(
+                    f"Converting video: {video_file_src} -> {slide_id}.mp4")
 
                 # FFmpeg command: Resize + Audio re-encode
                 cmd = [
@@ -580,7 +595,8 @@ class Movie():
                 png_file = os.path.join(self.movie_dir, f"{slide_id}.png")
                 wav_file = os.path.join(self.movie_dir, f"{slide_id}.wav")
 
-                if not os.path.isfile(png_file) or not os.path.isfile(wav_file):
+                if not os.path.isfile(
+                        png_file) or not os.path.isfile(wav_file):
                     # Skip if assets are missing
                     logger.warning(f"Material missing, skipping: {slide_id}")
                     continue
@@ -1040,7 +1056,8 @@ class Movie():
         current_config = self._get_build_config()
 
         if stored_config is None:
-            logger.info("No build_config in state file. Applying current settings.")
+            logger.info(
+                "No build_config in state file. Applying current settings.")
             state["build_config"] = current_config
             self._save_audio_state(state)
             stored_config = current_config
@@ -1048,7 +1065,8 @@ class Movie():
         if stored_config != current_config:
             import pprint
             logger.error("build_config inconsistency detected.")
-            logger.error("Changing resolution/FPS mid-process is not supported. Aborting.")
+            logger.error(
+                "Changing resolution/FPS mid-process is not supported. Aborting.")
             logger.error("-" * 40)
             logger.error("[Stored Config]")
             logger.error(pprint.pformat(stored_config))
@@ -1064,7 +1082,8 @@ class Movie():
 
         # Auto-fill if missing (Migration)
         if stored_tts is None:
-            logger.info("No TTS config in state file. Applying current settings.")
+            logger.info(
+                "No TTS config in state file. Applying current settings.")
             state["tts_config"] = current_tts
             self._save_audio_state(state)
 
@@ -1080,13 +1099,15 @@ class Movie():
             logger.warning("[Current Config (Now)]")
             logger.warning(pprint.pformat(current_tts))
             logger.warning("=" * 60)
-            logger.warning("Generating audio with different settings may result in inconsistent audio in the video.")
+            logger.warning(
+                "Generating audio with different settings may result in inconsistent audio in the video.")
 
             while True:
                 choice = input(
                     "Select action: 1) Ignore and Continue (Overwrite config)  2) Abort [1/2]: ").strip()
                 if choice == '1':
-                    logger.info("Applying new settings and continuing. Updating state file.")
+                    logger.info(
+                        "Applying new settings and continuing. Updating state file.")
                     state["tts_config"] = current_tts
                     self._save_audio_state(state)
                     break
