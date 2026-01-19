@@ -89,13 +89,6 @@ def main():
         help="Enable debug mode (Verbose logging, etc)."
     )
 
-    args = parser.parse_args()
-
-    # Exit if no action is specified
-    if not args.pptx and not args.video:
-        parser.print_help()
-        sys.exit(1)
-
     # 1. Initialize Movie instance (Load configuration files)
     try:
         movie = slidemovie.Movie()
@@ -104,6 +97,13 @@ def main():
         sys.exit(1)
     except Exception as e:
         logger.error(f"Failed to initialize Movie class: {e}")
+        sys.exit(1)
+
+    args = parser.parse_args()
+
+    # Exit if no action is specified
+    if not args.pptx and not args.video:
+        parser.print_help()
         sys.exit(1)
 
     # 2. Override settings with CLI options
