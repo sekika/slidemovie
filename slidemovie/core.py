@@ -1307,17 +1307,21 @@ class Movie():
             additional_prompt (str): Additional prompt for specific slides.
         """
         client = multiai_tts.Prompt()
-        client.set_tts_model(self.tts_provider, self.tts_model)
         if self.tts_provider == 'openai':
+            client.set_tts_model(self.tts_provider, self.tts_model)
             client.tts_voice_openai = self.tts_voice
         if self.tts_provider == 'google':
+            client.set_tts_model(self.tts_provider, self.tts_model)
             client.tts_voice_google = self.tts_voice
+        if self.tts_provider == 'azure':
+            client.set_tts_provider(self.tts_provider)
+            client.tts_voice_azure = self.tts_voice
 
         if self.tts_use_prompt:
             full_prompt_text = f'{self.prompt}{additional_prompt}\n{text}'
         else:
             full_prompt_text = text
-
+        
         for attempt in range(self.max_retry):
             client.save_tts(full_prompt_text, wav_path)
 
