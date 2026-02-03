@@ -69,7 +69,7 @@ slidemovie [PROJECT_NAME] [OPTIONS]
 
 These options override settings defined in `config.json` for the current run only.
 
-*   **`--tts-provider NAME`**: e.g., `google`, `openai`.
+*   **`--tts-provider NAME`**: e.g., `google`, `openai`, `azure`.
 *   **`--tts-model NAME`**: e.g., `gpt-4o-mini-tts`, `gemini-2.5-flash-preview-tts`.
 *   **`--tts-voice NAME`**: e.g., `cedar`, `charon`.
 *   **`--prompt TEXT`**: Overrides the system prompt and enables prompt usage (`tts_use_prompt=True`).

@@ -70,7 +70,7 @@ slidemovie [プロジェクト名] [オプション]
 
 これらのオプションは、`config.json` の設定を **今回の実行に限り** 上書きします。
 
-*   **`--tts-provider NAME`**: 例: `google`, `openai`
+*   **`--tts-provider NAME`**: 例: `google`, `openai`, `azure`
 *   **`--tts-model NAME`**: 例: `gpt-4o-mini-tts`, `gemini-2.5-flash-preview-tts`
 *   **`--tts-voice NAME`**: 例: `cedar`, `charon`
 *   **`--prompt TEXT`**: TTS生成時のシステムプロンプトを上書きし、プロンプトの使用を有効にします (`tts_use_prompt=True`)。

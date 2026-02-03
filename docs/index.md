@@ -28,7 +28,7 @@ The process creates a synergy between automation and human design:
 ## Key Features
 
 *   **Markdown-Based**: Version control your video scripts just like code.
-*   **AI Narration**: Utilizes Google Gemini or OpenAI to generate natural-sounding voiceovers.
+*   **AI Narration**: Utilizes Google Gemini, OpenAI or Azure to generate natural-sounding voiceovers.
 *   **No Video Editing Required**: The timing of the video is automatically adjusted to match the length of the narration.
 *   **Incremental Builds**: If you change a single slide's script, the tool only regenerates that specific part, saving time and API costs.
 

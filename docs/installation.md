@@ -76,4 +76,4 @@ The configuration file handles model selection, but the API Key configuration fo
 
 Please refer to the official **[multiai documentation](https://sekika.github.io/multiai/)** for detailed instructions on how to configure your API keys.
 
-> **Note:** Without a valid API key configuration matching your selected provider (Google Gemini or OpenAI), the audio generation step will fail.
+> **Note:** Without a valid API key configuration matching your selected provider (Google Gemini, OpenAI or Azure), the audio generation step will fail.
