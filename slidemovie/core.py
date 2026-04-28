@@ -1328,7 +1328,7 @@ class Movie():
             if not client.error:
                 return
 
-            if attempt > 0 or 'RESOURCE_EXHAUSTED' in client.error_message:
+            if 'RESOURCE_EXHAUSTED' in client.error_message:
                 logger.error(client.error_message)
                 sys.exit()
             else:
