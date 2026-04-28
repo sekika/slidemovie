@@ -830,7 +830,7 @@ class Movie():
         new_lines = []
 
         for i, line in enumerate(lines):
-            stripped_line = line.strip()
+            stripped_line = line.strip('\n')
 
             # If it's a header line
             if stripped_line.startswith("# "):
