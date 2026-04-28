@@ -1218,10 +1218,28 @@ class Movie():
             tmp.name
         ]
 
-        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL)
-
-        os.replace(tmp.name, wav_file)
+        try:
+            result = subprocess.run(
+                cmd, 
+                check=False,
+                capture_output=True,
+                text=True
+            )
+            
+            if result.returncode != 0:
+                logger.error(f"FFmpeg failed to prepend silence to {wav_file}")
+                logger.error(f"Command: {' '.join(cmd)}")
+                if result.stdout:
+                    logger.error(f"stdout:\n{result.stdout}")
+                if result.stderr:
+                    logger.error(f"stderr:\n{result.stderr}")
+                raise RuntimeError(f"Failed to prepend silence: {result.stderr}")
+            
+            os.replace(tmp.name, wav_file)
+            
+        finally:
+            if os.path.exists(tmp.name):
+                os.remove(tmp.name)
 
     def build_slide_pptx(self):
         """
