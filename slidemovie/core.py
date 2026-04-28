@@ -572,7 +572,17 @@ class Movie():
                 ]
 
                 try:
-                    subprocess.run(cmd, check=True)
+                    result = subprocess.run(cmd, check=False, capture_output=True, text=True)
+                    
+                    if result.returncode != 0:
+                        logger.error(f"Video conversion failed: {slide_id}")
+                        logger.error(f"Command: {' '.join(cmd)}")
+                        if result.stdout:
+                            logger.error(f"stdout:\n{result.stdout}")
+                        if result.stderr:
+                            logger.error(f"stderr:\n{result.stderr}")
+                        continue
+
                     duration = self._get_mp4_duration(output_mp4)
 
                     # Update state
@@ -587,8 +597,8 @@ class Movie():
                     self._save_audio_state(state)
                     logger.info(f"Done: {output_mp4} ({duration:.2f}s)")
 
-                except subprocess.CalledProcessError:
-                    logger.error(f"Video conversion failed: {slide_id}")
+                except Exception as e:
+                    logger.error(f"Unexpected error converting video: {slide_id}: {e}")
 
             # --- Branch: Normal slide (TTS + Image) ---
             else:
@@ -642,7 +652,17 @@ class Movie():
 
                 logger.info(f"Generating {slide_id}.mp4...")
                 try:
-                    subprocess.run(cmd, check=True)
+                    result = subprocess.run(cmd, check=False, capture_output=True, text=True)
+                    
+                    if result.returncode != 0:
+                        logger.error(f"MP4 creation failed: {slide_id}")
+                        logger.error(f"Command: {' '.join(cmd)}")
+                        if result.stdout:
+                            logger.error(f"stdout:\n{result.stdout}")
+                        if result.stderr:
+                            logger.error(f"stderr:\n{result.stderr}")
+                        continue
+    
                     duration = self._get_mp4_duration(output_mp4)
 
                     slide_state["video"] = {
@@ -656,8 +676,8 @@ class Movie():
                     self._save_audio_state(state)
                     logger.info(f"Done: {output_mp4} ({duration:.2f}s)")
 
-                except subprocess.CalledProcessError:
-                    logger.error(f"MP4 creation failed: {slide_id}")
+                except Exception as e:
+                    logger.error(f"Unexpected error creating MP4: {slide_id}: {e}")
 
     def build_final_video(self):
         """
