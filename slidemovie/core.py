@@ -704,7 +704,8 @@ class Movie():
                 if os.path.isfile(mp4_path):
                     # ffmpeg concat demuxer format
                     # Use abspath for Windows path compatibility
-                    f.write(f"file '{os.path.abspath(mp4_path)}'\n")
+                    unix_path = os.path.abspath(mp4_path).replace("\\", "/")
+                    f.write(f"file '{unix_path}'\n")
                     found_count += 1
                 else:
                     logger.warning(f"MP4 not found: {mp4_path} (Skipping)")
