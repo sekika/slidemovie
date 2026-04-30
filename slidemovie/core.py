@@ -474,8 +474,9 @@ class Movie():
         slide_ids = list(slide_notes.keys())
 
         if len(slide_ids) != len(generated_files):
-            logger.warning(
+            logger.error(
                 f"Generated image count ({len(generated_files)}) does not match slide_id count ({len(slide_ids)}).")
+            sys.exit()
 
         # Rename using slide_id
         for i, slide_id in enumerate(slide_ids):
