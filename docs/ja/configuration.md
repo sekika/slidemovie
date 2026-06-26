@@ -26,6 +26,8 @@ parent: はじめに
 
 ### テキスト読み上げ (TTS)
 
+サポートされているプロバイダーとモデルについては、[multiai-tts](https://sekika.github.io/multiai-tts/#supported-ai-providers)を参照してください。
+
 | キー | 型 | デフォルト | 説明 |
 | :--- | :--- | :--- | :--- |
 | `tts_provider` | 文字列 | `"google"` | AI プロバイダー (`google`, `openai` または `azure`)。 |

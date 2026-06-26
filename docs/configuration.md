@@ -25,6 +25,8 @@ Here is a complete list of available keys in `config.json`.
 
 ### Text-to-Speech (TTS)
 
+See [multiai-tts](https://sekika.github.io/multiai-tts/#supported-ai-providers) for supported providers and models.
+
 | Key | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `tts_provider` | string | `"google"` | The AI provider (`google`, `openai`, or `azure`). |
