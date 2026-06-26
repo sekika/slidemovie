@@ -32,6 +32,9 @@ Here is a complete list of available keys in `config.json`.
 | `tts_voice` | string | `"sadaltager"` | The voice ID (e.g., `alloy` for OpenAI, `en-US-AvaMultilingualNeural` for Azure and English). |
 | `tts_use_prompt`| bool | `true` | Whether to send a system prompt to the TTS API. Set `true` for google and `false` for OpenAI and Azure. |
 | `prompt` | string | `"Please speak..."` | The system instruction for the TTS engine. |
+| `chunk_size` | int / null | `null` | Max characters per chunk for long narration. `null` disables splitting (default behavior). Measured against the spoken text only, not the prompt. See [Long narration](advanced-usage.md#long-narration-automatic-chunking). |
+| `split_chars` | string | `"。．.!！?？\n"` | Candidate characters where the text may be split into chunks. |
+| `chunk_overflow` | string | `"extend"` | Behavior when no split candidate is found within `chunk_size`: `"extend"` reads on to the next candidate; `"error"` stops with an error. |
 
 ### Video Format
 

@@ -75,6 +75,11 @@ class Movie():
             tts_voice (str): Voice setting for TTS. Default: 'sadaltager'.
             tts_use_prompt (bool): Whether to use a system prompt for TTS. Default: True.
             prompt (str): System prompt for TTS generation.
+            chunk_size (int or None): Max characters per TTS chunk, measured against the
+                spoken text only. None disables splitting (original behavior). Default: None.
+            split_chars (str): Candidate split characters for chunking. Default: "。．.!！?？\n".
+            chunk_overflow (str): Behavior when no split candidate is found within chunk_size.
+                'extend' reads on to the next candidate; 'error' stops with an error. Default: 'extend'.
             screen_size (list): Video resolution [width, height]. Default: [1280, 720].
             video_fps (int): Video frame rate. Default: 30.
             video_timescale (int): Video timescale. Default: 90000.
@@ -98,6 +103,9 @@ class Movie():
             "tts_voice": 'sadaltager',
             "tts_use_prompt": True,
             "prompt": 'Please speak the following.',
+            "chunk_size": None,
+            "split_chars": "。．.!！?？\n",
+            "chunk_overflow": "extend",
 
             # Screen settings (Defined as list for JSON serialization)
             "screen_size": [1280, 720],
@@ -1109,8 +1117,27 @@ class Movie():
             state["tts_config"] = current_tts
             self._save_audio_state(state)
 
+        else:
+            # Backfill chunk keys added in later versions so that old state files
+            # (which lack them) do not trigger a spurious change prompt. The
+            # defaults match the original no-split behavior, so existing
+            # projects are unaffected.
+            chunk_defaults = {
+                "chunk_size": None,
+                "split_chars": "。．.!！?？\n",
+                "chunk_overflow": "extend",
+            }
+            backfilled = False
+            for key, default in chunk_defaults.items():
+                if key not in stored_tts:
+                    stored_tts[key] = default
+                    backfilled = True
+            if backfilled:
+                state["tts_config"] = stored_tts
+                self._save_audio_state(state)
+
         # Confirmation prompt if mismatched
-        elif stored_tts != current_tts:
+        if stored_tts is not None and stored_tts != current_tts:
             import pprint
             logger.warning("=" * 60)
             logger.warning("TTS config change detected.")
@@ -1197,7 +1224,10 @@ class Movie():
             "model": self.tts_model,
             "voice": self.tts_voice,
             "use_prompt": self.tts_use_prompt,
-            "prompt": self.prompt
+            "prompt": self.prompt,
+            "chunk_size": self.chunk_size,
+            "split_chars": self.split_chars,
+            "chunk_overflow": self.chunk_overflow,
         }
 
     def _get_wav_duration(self, wav_path):
@@ -1357,24 +1387,67 @@ class Movie():
             client.set_tts_provider(self.tts_provider)
             client.tts_voice_azure = self.tts_voice
 
+        # Style prompt is kept separate from the spoken text and passed via the
+        # `prompt` argument. multiai-tts re-applies it to every chunk and measures
+        # `chunk_size` against the spoken text only. Empty disables it (original behavior).
         if self.tts_use_prompt:
-            full_prompt_text = f'{self.prompt}{additional_prompt}\n{text}'
+            style_prompt = f'{self.prompt}{additional_prompt}'
         else:
-            full_prompt_text = text
-        
+            style_prompt = ''
+
         for attempt in range(self.max_retry):
-            client.save_tts(full_prompt_text, wav_path)
+            client.save_tts(
+                text,
+                wav_path,
+                prompt=style_prompt,
+                chunk_size=self.chunk_size,
+                split_chars=self.split_chars,
+                chunk_overflow=self.chunk_overflow,
+            )
 
             if not client.error:
                 return
 
-            if 'RESOURCE_EXHAUSTED' in client.error_message:
-                logger.error(client.error_message)
+            error_message = client.error_message or ''
+
+            # Deterministic failures that retrying cannot resolve: API quota
+            # exhaustion and a chunk_overflow="error" split failure (no split
+            # candidate found within chunk_size). Exit immediately instead of
+            # waiting 3 minutes for a retry that would fail identically.
+            is_split_failure = self.chunk_overflow == 'error' and (
+                'chunk' in error_message.lower()
+                or 'split' in error_message.lower())
+
+            if 'RESOURCE_EXHAUSTED' in error_message or is_split_failure:
+                logger.error(error_message)
                 sys.exit()
             else:
                 logger.error(
-                    f'{full_prompt_text}\n{client.error_message}\nWaiting for 3 minutes and retry...')
+                    f'[prompt] {style_prompt}\n[text] {text}\n'
+                    f'{error_message}\nWaiting for 3 minutes and retry...')
                 time.sleep(180)
+
+    def split_text(self, text, chunk_size=None):
+        """
+        Splits text into chunks using multiai-tts's split_text(), applying the
+        instance's chunking settings. Useful for inspecting chunk boundaries
+        without performing synthesis. Not used by the CLI.
+
+        Args:
+            text (str): Spoken text to split.
+            chunk_size (int or None): Max characters per chunk. Falls back to
+                self.chunk_size when None.
+
+        Returns:
+            list[str]: The chunk boundaries as returned by multiai-tts.
+        """
+        client = multiai_tts.Prompt()
+        return client.split_text(
+            text,
+            chunk_size=chunk_size if chunk_size is not None else self.chunk_size,
+            split_chars=self.split_chars,
+            chunk_overflow=self.chunk_overflow,
+        )
 
     def _normalize_notes(self, text):
         """

@@ -75,6 +75,9 @@ slidemovie [プロジェクト名] [オプション]
 *   **`--tts-voice NAME`**: 例: `cedar`, `charon`
 *   **`--prompt TEXT`**: TTS生成時のシステムプロンプトを上書きし、プロンプトの使用を有効にします (`tts_use_prompt=True`)。
 *   **`--no-prompt`**: システムプロンプトの使用を無効にします (`tts_use_prompt=False`)。
+*   **`--chunk-size N`**: TTS の 1 チャンクあたりの最大文字数。指定すると長文ナレーションの自動分割が有効になります（[長文ナレーション](advanced-usage.md#長文ナレーションの自動チャンク分割) を参照）。
+*   **`--split-chars STR`**: 分割候補となる文字列（デフォルト: `。．.!！?？` と改行）。
+*   **`--chunk-overflow {extend,error}`**: `--chunk-size` 以内に分割候補が見つからない場合の挙動。`extend` は次の候補まで読み進め、`error` はエラーで停止します。
 
 ### デバッグ
 

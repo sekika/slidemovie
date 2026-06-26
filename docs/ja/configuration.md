@@ -33,6 +33,9 @@ parent: はじめに
 | `tts_voice` | 文字列 | `"sadaltager"` | 話者 ID (例: OpenAI の場合は `alloy`、Azure で英語の場合は `en-US-AvaMultilingualNeural`)。 |
 | `tts_use_prompt`| 真偽値 | `true` | TTS API にシステムプロンプトを送信するかどうか。Google では true, OpenAI と Azure では false |
 | `prompt` | 文字列 | `"Please speak..."` | TTS エンジンへのシステム指示（プロンプト）。 |
+| `chunk_size` | int / null | `null` | 長いナレーションを分割する際の 1 チャンクあたりの最大文字数。`null` で分割無効（デフォルト動作）。プロンプトは含めず読み上げ本文の長さのみで評価される。[長文ナレーション](advanced-usage.md#長文ナレーションの自動チャンク分割) を参照。 |
+| `split_chars` | 文字列 | `"。．.!！?？\n"` | テキストを分割する候補となる文字。 |
+| `chunk_overflow` | 文字列 | `"extend"` | `chunk_size` 以内に分割候補が見つからない場合の挙動。`"extend"` は次の候補まで読み進める。`"error"` はエラーで停止する。 |
 
 ### 動画フォーマット
 

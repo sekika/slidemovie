@@ -31,5 +31,6 @@ The process creates a synergy between automation and human design:
 *   **AI Narration**: Utilizes Google Gemini, OpenAI or Azure to generate natural-sounding voiceovers.
 *   **No Video Editing Required**: The timing of the video is automatically adjusted to match the length of the narration.
 *   **Incremental Builds**: If you change a single slide's script, the tool only regenerates that specific part, saving time and API costs.
+*   **Long Narration Support**: Optionally splits long narration into chunks for stable synthesis (`--chunk-size`).
 
 Please proceed to the **[Installation](./installation/)** page to get started.

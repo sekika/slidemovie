@@ -58,6 +58,43 @@ While the `prompt` in `config.json` sets the global system instruction for the T
 *   **Effect**: When regenerating audio for this slide, the TTS engine will receive: `Global Prompt` + `Additional Prompt` + `Slide Notes`.
 *   **Triggering Regeneration**: After editing `additional_prompt`, you must force regeneration. The easiest way is to change the `"status"` value from `"generated"` to something else (e.g., `"missing"` or `"update"`) in `status.json`.
 
+## Long narration (automatic chunking)
+
+When a slide's narration (`::: notes`) is long, it can exceed a provider's request length limit, or — with some Gemini models — degrade in quality on long input. `slidemovie` can automatically split the narration into smaller chunks, synthesize each, and join the resulting audio.
+
+This is **disabled by default** (`chunk_size: null`); behavior is unchanged unless you opt in.
+
+### Enabling it
+
+Set `chunk_size` in `config.json`, or pass `--chunk-size` on the command line:
+
+```bash
+# Split narration into chunks of at most ~1000 characters
+slidemovie myproject -v --chunk-size 1000
+```
+
+| Setting | CLI | Description |
+| :--- | :--- | :--- |
+| `chunk_size` | `--chunk-size N` | Max characters per chunk. Splitting is enabled only when set. |
+| `split_chars` | `--split-chars STR` | Characters where a split is allowed (default: `。．.!！?？` and newline). The split point is just after the rightmost candidate found within `chunk_size`. |
+| `chunk_overflow` | `--chunk-overflow {extend,error}` | What to do when no candidate is found within `chunk_size`. `extend` (default) keeps reading until the next candidate (or end of text); `error` stops the run. |
+
+### How prompts interact with chunking
+
+The style prompt (`prompt` + any per-slide `additional_prompt`) is passed to the TTS engine **separately** from the spoken text. As a result:
+
+*   The prompt is **re-applied to every chunk**, so the voice/tone stays consistent across the whole narration.
+*   `chunk_size` is measured against the **spoken text only** — the prompt length never counts toward it.
+
+> Earlier versions prepended the prompt into the text before splitting, so only the first chunk carried the style instruction. That limitation is resolved: the prompt now applies to all chunks.
+
+### Caveats
+
+*   **Chunk boundaries**: Joining independently-synthesized chunks can produce slight changes in pitch or tempo at the seams. Larger `chunk_size` values mean fewer seams.
+*   **`extend` can exceed `chunk_size`**: If no split candidate exists within `chunk_size`, `extend` reads on until the next candidate (or the end of the text), so an individual chunk may be considerably longer than `chunk_size`.
+*   **API length limits are your responsibility**: `chunk_size` is a character count you choose; it is not derived from any provider's actual request limit. Pick a value that stays within your provider/model's limits.
+*   **Regeneration**: `chunk_size`, `split_chars`, and `chunk_overflow` are part of the TTS configuration recorded in `status.json`. Changing them triggers the "TTS config change detected" prompt, just like changing the voice or model.
+
 ## Subprojects (Folder Management)
 
 For creating a series of videos (e.g., an online course), use the `--sub` option.

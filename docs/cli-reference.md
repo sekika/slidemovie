@@ -74,6 +74,9 @@ These options override settings defined in `config.json` for the current run onl
 *   **`--tts-voice NAME`**: e.g., `cedar`, `charon`.
 *   **`--prompt TEXT`**: Overrides the system prompt and enables prompt usage (`tts_use_prompt=True`).
 *   **`--no-prompt`**: Disables the use of a system prompt (`tts_use_prompt=False`).
+*   **`--chunk-size N`**: Max characters per TTS chunk. Setting this enables automatic splitting of long narration (see [Long narration](advanced-usage.md#long-narration-automatic-chunking)).
+*   **`--split-chars STR`**: Candidate split characters for chunking (default: `。．.!！?？` and newline).
+*   **`--chunk-overflow {extend,error}`**: Behavior when no split candidate is found within `--chunk-size`. `extend` reads on to the next candidate; `error` stops with an error.
 
 ### Debugging
 

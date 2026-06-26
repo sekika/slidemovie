@@ -89,6 +89,15 @@ def main():
         "--no-prompt",
         action="store_true",
         help="Disable TTS system prompt")
+    parser.add_argument(
+        "--chunk-size", type=int,
+        help="Max characters per TTS chunk. Enables automatic text splitting when set.")
+    parser.add_argument(
+        "--split-chars",
+        help="Candidate split characters for chunking (default: 。．.!！?？ and newline).")
+    parser.add_argument(
+        "--chunk-overflow", choices=["extend", "error"],
+        help="Behavior when no split candidate is found within chunk-size.")
 
     # --- Other Options ---
     parser.add_argument(
@@ -127,6 +136,13 @@ def main():
         movie.tts_use_prompt = True
     if args.no_prompt:
         movie.tts_use_prompt = False
+    # Use `is not None` so that --chunk-size 0 (an explicit value) is not ignored.
+    if args.chunk_size is not None:
+        movie.chunk_size = args.chunk_size
+    if args.split_chars is not None:
+        movie.split_chars = args.split_chars
+    if args.chunk_overflow is not None:
+        movie.chunk_overflow = args.chunk_overflow
     if args.filename:
         movie.output_filename = args.filename
 

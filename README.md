@@ -25,6 +25,7 @@
 *   **PowerPoint Integration**: Use PowerPoint's AI "Designer" to create professional visuals instantly.
 *   **No Video Editing**: Audio and visuals are automatically synchronized.
 *   **Incremental Builds**: Only regenerates changed slides to save time and API costs.
+*   **Long Narration Support**: Optionally splits long narration into chunks for stable synthesis (`--chunk-size`).
 
 ## 🎥 Demo
 
