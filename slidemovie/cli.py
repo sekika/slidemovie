@@ -192,9 +192,7 @@ def main():
 
     # Generate PPTX (--pptx)
     if args.pptx:
-        logger.info("=" * 60)
         logger.info("MODE: Build Slide PPTX")
-        logger.info("=" * 60)
         movie.build_slide_pptx()
         logger.info("PPTX generation process finished.")
         if not args.video:
@@ -203,9 +201,7 @@ def main():
 
     # Generate Video (--video)
     if args.video:
-        logger.info("=" * 60)
         logger.info("MODE: Build All Video Assets")
-        logger.info("=" * 60)
         movie.build_all()
 
         logger.info("All video processes finished.")
