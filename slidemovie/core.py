@@ -65,6 +65,28 @@ class Movie():
             logger.error("Please install them before running this tool.")
             sys.exit(1)
 
+        # ImageMagick (provides 'convert' or 'magick') is required to normalize
+        # slide images to screen_size with aspect-ratio-preserving padding.
+        if self._resolve_imagemagick_cmd() is None:
+            logger.error(
+                "ImageMagick not found (no 'convert' or 'magick' command).")
+            logger.error("Please install ImageMagick before running this tool.")
+            sys.exit(1)
+
+    def _resolve_imagemagick_cmd(self):
+        """
+        Resolves the ImageMagick base command.
+
+        Returns:
+            list[str] or None: Command prefix, e.g. ['convert'] or ['magick', 'convert'],
+            or None if ImageMagick is not available.
+        """
+        if shutil.which("convert"):
+            return ["convert"]
+        if shutil.which("magick"):
+            return ["magick", "convert"]
+        return None
+
     def _get_default_settings(self):
         """
         Returns the default configuration dictionary.
@@ -81,6 +103,9 @@ class Movie():
             chunk_overflow (str): Behavior when no split candidate is found within chunk_size.
                 'extend' reads on to the next candidate; 'error' stops with an error. Default: 'extend'.
             screen_size (list): Video resolution [width, height]. Default: [1280, 720].
+            use_pdf (bool): Use a PDF file as the image source instead of PPTX. Default: False.
+            image_pad_color (str): Padding color for aspect-ratio-preserving letterbox/pillarbox
+                when normalizing slide images to screen_size. Default: 'white'.
             video_fps (int): Video frame rate. Default: 30.
             video_timescale (int): Video timescale. Default: 90000.
             video_pix_fmt (str): Pixel format. Default: 'yuv420p'.
@@ -109,6 +134,10 @@ class Movie():
 
             # Screen settings (Defined as list for JSON serialization)
             "screen_size": [1280, 720],
+
+            # Image source / normalization settings
+            "use_pdf": False,
+            "image_pad_color": 'white',
 
             # Video format settings
             "video_fps": 30,
@@ -260,6 +289,7 @@ class Movie():
             os.mkdir(self.movie_dir)
 
         self.slide_file = f'{self.source_dir}/{project_name}.pptx'
+        self.pdf_file = f'{self.source_dir}/{project_name}.pdf'
         self.video_file = f'{self.movie_dir}/{final_filename}.mp4'
 
     def configure_subproject_paths(
@@ -332,6 +362,7 @@ class Movie():
             os.mkdir(self.movie_dir)
 
         self.slide_file = f'{self.source_dir}/{subproject_name}.pptx'
+        self.pdf_file = f'{self.source_dir}/{subproject_name}.pdf'
         self.video_file = f'{self.movie_dir}/{final_filename}.mp4'
 
     def build_all(self):
@@ -428,31 +459,45 @@ class Movie():
 
     def build_slide_images(self):
         """
-        Converts PPTX slides to images and renames them based on Markdown slide-ids.
-        Uses a state file to detect PPTX changes and skip unnecessary processing.
+        Converts slides to images and renames them based on Markdown slide-ids.
+
+        The image source is selected by `self.use_pdf`:
+            - False (default): `self.slide_file` (.pptx), converted via `pptxtoimages`
+              (LibreOffice + Poppler).
+            - True: `self.pdf_file` (.pdf), converted directly to PNG via Poppler.
+
+        Every generated image is normalized to `screen_size`, preserving the source
+        aspect ratio and padding evenly (letterbox/pillarbox) so the result matches
+        the video resolution exactly. A state file detects source changes to skip
+        unnecessary processing.
 
         Prerequisites:
-            - `self.slide_file` (pptx) must exist.
-            - External tool `pptxtoimages` (LibreOffice + Poppler) must be available.
+            - The selected source file must exist.
+            - Poppler (pdf2image) must be available.
+            - ImageMagick (`convert`/`magick`) must be available for normalization.
         """
-        from pptxtoimages.tools import PPTXToImageConverter
         import glob
 
-        if not os.path.isfile(self.slide_file):
-            logger.error(f"Slide file does not exist: {self.slide_file}")
+        # Select image source based on use_pdf
+        use_pdf = getattr(self, "use_pdf", False)
+        source_file = self.pdf_file if use_pdf else self.slide_file
+        source_kind = "PDF" if use_pdf else "PPTX"
+
+        if not os.path.isfile(source_file):
+            logger.error(f"Slide source file does not exist: {source_file}")
             return
 
-        # 1. Change detection (Check PPTX hash)
+        # 1. Change detection (Check source hash)
         state = self._load_audio_state()
-        current_pptx_hash = self._hash_file(self.slide_file)
+        current_source_hash = self._hash_file(source_file)
 
         # Get existing state
         images_task = state.get("images_task", {})
 
         if (images_task.get("status") == "generated" and
-                images_task.get("source_hash") == current_pptx_hash):
+                images_task.get("source_hash") == current_source_hash):
             if self.show_skip:
-                logger.info(f"[SKIP] Images (PPTX unchanged)")
+                logger.info(f"[SKIP] Images ({source_kind} unchanged)")
             return
 
         # --- Start Generation ---
@@ -464,11 +509,15 @@ class Movie():
         for f in glob.glob(os.path.join(self.movie_dir, "slide_*.png")):
             os.remove(f)
 
-        logger.info(f"Starting PPTX -> Image conversion.")
+        logger.info(f"Starting {source_kind} -> Image conversion.")
 
-        # PPTX -> PNG
-        converter = PPTXToImageConverter(self.slide_file, self.movie_dir)
-        converter.convert()
+        # Source -> PNG (intermediate slide_1.png, slide_2.png...)
+        if use_pdf:
+            self._convert_pdf_to_pngs(source_file, self.movie_dir)
+        else:
+            from pptxtoimages.tools import PPTXToImageConverter
+            converter = PPTXToImageConverter(source_file, self.movie_dir)
+            converter.convert()
 
         # Get generated filenames (slide_1.png, slide_2.png...)
         generated_files = sorted(
@@ -476,6 +525,10 @@ class Movie():
             key=lambda x: int(os.path.splitext(
                 os.path.basename(x))[0].split("_")[1])
         )
+
+        # Normalize each image to screen_size (aspect-preserving even padding)
+        for png in generated_files:
+            self._normalize_image_to_screen(png)
 
         # Get list of slide_ids
         slide_notes = self._extract_slide_notes()
@@ -497,14 +550,74 @@ class Movie():
         # 2. Save state
         state["images_task"] = {
             "status": "generated",
-            "source_file": os.path.basename(self.slide_file),
-            "source_hash": current_pptx_hash,
+            "source_file": os.path.basename(source_file),
+            "source_hash": current_source_hash,
             "generated_at": self._now()
         }
         state["last_checked"] = self._now()
         self._save_audio_state(state)
 
         logger.info(f"Image conversion completed.")
+
+    def _convert_pdf_to_pngs(self, pdf_path, output_dir):
+        """
+        Converts each page of a PDF into `slide_{n}.png` files using pdf2image (Poppler).
+
+        Args:
+            pdf_path (str): Path to the source PDF file.
+            output_dir (str): Directory to write the slide_*.png files into.
+
+        Returns:
+            list[str]: Paths of the generated PNG files.
+        """
+        from pdf2image import convert_from_path
+
+        os.makedirs(output_dir, exist_ok=True)
+        pages = convert_from_path(pdf_path, dpi=200)
+        output_files = []
+        for i, page in enumerate(pages):
+            output_file = os.path.join(output_dir, f"slide_{i + 1}.png")
+            page.save(output_file, "PNG")
+            output_files.append(output_file)
+        return output_files
+
+    def _normalize_image_to_screen(self, image_path):
+        """
+        Resizes and pads an image to exactly `screen_size`, preserving aspect ratio.
+
+        The image is scaled to fit within screen_size, then centered on a
+        screen_size canvas with even letterbox/pillarbox padding (`image_pad_color`)
+        using ImageMagick's `-extent`. The file is overwritten in place.
+        """
+        width, height = self.screen_size
+        magick = self._resolve_imagemagick_cmd()
+        if magick is None:
+            logger.error("ImageMagick not found for image normalization.")
+            sys.exit(1)
+
+        # Use absolute path for Windows compatibility (input == output).
+        abs_path = os.path.abspath(image_path)
+        geometry = f"{width}x{height}"
+        cmd = magick + [
+            abs_path,
+            "-resize", geometry,
+            "-background", self.image_pad_color,
+            "-gravity", "center",
+            "-extent", geometry,
+            abs_path,
+        ]
+
+        result = subprocess.run(
+            cmd, check=False, capture_output=True, text=True)
+
+        if result.returncode != 0:
+            logger.error(f"Image normalization failed: {image_path}")
+            logger.error(f"Command: {' '.join(cmd)}")
+            if result.stdout:
+                logger.error(f"stdout:\n{result.stdout}")
+            if result.stderr:
+                logger.error(f"stderr:\n{result.stderr}")
+            sys.exit(1)
 
     def build_slide_videos(self):
         """
@@ -808,7 +921,8 @@ class Movie():
             },
             "common": {
                 "silence_sec": self.silence_sec
-            }
+            },
+            "image_pad_color": self.image_pad_color
         }
 
     def _ensure_slide_ids(self):
@@ -1091,6 +1205,15 @@ class Movie():
             state["build_config"] = current_config
             self._save_audio_state(state)
             stored_config = current_config
+
+        # Backfill image_pad_color (added in later versions) so old state files
+        # that predate it do not trigger a spurious build_config abort. The
+        # current value is assumed, leaving existing projects unaffected.
+        if "image_pad_color" not in stored_config:
+            stored_config["image_pad_color"] = current_config.get(
+                "image_pad_color")
+            state["build_config"] = stored_config
+            self._save_audio_state(state)
 
         if stored_config != current_config:
             import pprint

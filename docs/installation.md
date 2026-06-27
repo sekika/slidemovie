@@ -29,6 +29,7 @@ This will automatically install the necessary Python dependencies, including `mu
 2.  **Pandoc**: Used to convert your Markdown text file into a PowerPoint (`.pptx`) file.
 3.  **LibreOffice**: Used in "headless mode" to convert PowerPoint slides into high-resolution images.
 4.  **Poppler (pdftoppm)**: A PDF rendering library used to extract images from the slides.
+5.  **ImageMagick (`convert`/`magick`)**: Used to normalize slide images to the configured `screen_size`, preserving aspect ratio with even padding (letterbox/pillarbox).
 
 ### Installation Commands
 
@@ -36,14 +37,14 @@ This will automatically install the necessary Python dependencies, including `mu
 If you do not have Homebrew installed, please visit [brew.sh](https://brew.sh/).
 
 ```bash
-brew install ffmpeg pandoc poppler
+brew install ffmpeg pandoc poppler imagemagick
 brew install --cask libreoffice
 ```
 
 #### For Ubuntu / Debian
 ```bash
 sudo apt update
-sudo apt install ffmpeg pandoc libreoffice poppler-utils
+sudo apt install ffmpeg pandoc libreoffice poppler-utils imagemagick
 ```
 
 #### For Windows
@@ -51,6 +52,7 @@ sudo apt install ffmpeg pandoc libreoffice poppler-utils
 2.  **Pandoc**: Download the installer from [pandoc.org](https://pandoc.org/).
 3.  **LibreOffice**: Install the standard desktop version. Ensure the command line `soffice` is in your PATH.
 4.  **Poppler**: Download binary release for Windows and add the `bin` folder to your PATH.
+5.  **ImageMagick**: Download the installer from [imagemagick.org](https://imagemagick.org/), and ensure `magick` (or `convert`) is in your PATH.
 
 ## 3. Setup AI API Keys
 

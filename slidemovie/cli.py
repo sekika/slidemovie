@@ -55,6 +55,11 @@ def main():
         action="store_true",
         help="Generate all video assets from Markdown and PPTX (Build mode)."
     )
+    parser.add_argument(
+        "--pdf",
+        action="store_true",
+        help="Use a PDF file ({project}.pdf) as the image source instead of PPTX (with --video)."
+    )
 
     # --- Path & Project Structure Options ---
     parser.add_argument(
@@ -145,6 +150,11 @@ def main():
         movie.chunk_overflow = args.chunk_overflow
     if args.filename:
         movie.output_filename = args.filename
+    # Image source selection (PDF instead of PPTX). Only meaningful with --video.
+    movie.use_pdf = args.pdf
+    if args.pdf and args.pptx and not args.video:
+        logger.warning(
+            "--pdf has no effect on PPTX generation (-p); it only affects image source during --video.")
 
     if args.debug:
         movie.ffmpeg_loglevel = 'info'

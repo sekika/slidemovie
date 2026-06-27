@@ -35,10 +35,16 @@ slidemovie [PROJECT_NAME] [OPTIONS]
     *   **Action**: Builds the complete video.
     *   **Steps**:
         1.  Generates Audio (TTS) from Markdown notes.
-        2.  Exports Images from the PPTX file.
+        2.  Exports Images from the PPTX file (or from the PDF file when `--pdf` is set).
         3.  Combines Audio and Images into slide clips.
         4.  Concatenates clips into the final movie.
     *   **Use Case**: Final production.
+    *   **Note**: Slide images are normalized to `screen_size`. If the source aspect ratio differs, the image is scaled to fit and padded evenly (letterbox/pillarbox) with `image_pad_color`.
+
+*   **`--pdf`**
+    *   **Action**: Uses a PDF file (`{PROJECT_NAME}.pdf`) as the image source instead of the PowerPoint file.
+    *   **Use Case**: When slides are already available as a PDF (e.g., exported from another tool). Combine with `-v` to build the video directly from the PDF.
+    *   **Note**: Only affects image generation during `--video`; it has no effect on `--pptx` (`-p`) drafting. Audio generation from Markdown notes is unchanged.
 
 ### Path & Structure
 

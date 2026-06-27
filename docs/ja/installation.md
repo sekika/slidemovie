@@ -30,6 +30,7 @@ pip install slidemovie
 2.  **Pandoc**: Markdown テキストファイルを PowerPoint (`.pptx`) ファイルに変換するために使用します。
 3.  **LibreOffice**: PowerPoint スライドを高解像度の画像に変換するために（ヘッドレスモードで）使用します。
 4.  **Poppler (pdftoppm)**: スライドから画像を抽出するために使用される PDF レンダリングライブラリです。
+5.  **ImageMagick (`convert`/`magick`)**: スライド画像を `screen_size` に正規化し、アスペクト比を保ったまま均等な余白（レターボックス／ピラーボックス）を付与するために使用します。
 
 ### インストールコマンド
 
@@ -37,14 +38,14 @@ pip install slidemovie
 Homebrew がインストールされていない場合は [brew.sh](https://brew.sh/index_ja) を参照してください。
 
 ```bash
-brew install ffmpeg pandoc poppler
+brew install ffmpeg pandoc poppler imagemagick
 brew install --cask libreoffice
 ```
 
 #### Ubuntu / Debian の場合
 ```bash
 sudo apt update
-sudo apt install ffmpeg pandoc libreoffice poppler-utils
+sudo apt install ffmpeg pandoc libreoffice poppler-utils imagemagick
 ```
 
 #### Windows の場合
@@ -52,6 +53,7 @@ sudo apt install ffmpeg pandoc libreoffice poppler-utils
 2.  **Pandoc**: [pandoc.org](https://pandoc.org/) からインストーラーをダウンロードして実行してください。
 3.  **LibreOffice**: 標準のデスクトップ版をインストールしてください。コマンドラインの `soffice` が PATH に通っていることを確認してください。
 4.  **Poppler**: Windows 用のバイナリリリースをダウンロードし、`bin` フォルダを PATH に追加してください。
+5.  **ImageMagick**: [imagemagick.org](https://imagemagick.org/) からインストーラーをダウンロードし、`magick`（または `convert`）が PATH に通っていることを確認してください。
 
 ## 3. AI APIキーの設定
 

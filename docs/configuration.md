@@ -42,7 +42,8 @@ See [multiai-tts](https://sekika.github.io/multiai-tts/#supported-ai-providers) 
 
 | Key | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `screen_size` | [int, int] | `[1280, 720]` | Resolution `[width, height]`. |
+| `screen_size` | [int, int] | `[1280, 720]` | Resolution `[width, height]`. Slide images are normalized to this size. |
+| `image_pad_color` | string | `"white"` | Padding color used when a slide's aspect ratio differs from `screen_size`. The image is scaled to fit and centered, with even letterbox/pillarbox padding of this color. Any ImageMagick color name/value is accepted (e.g. `"black"`). |
 | `video_fps` | int | `30` | Frames per second. |
 | `video_codec` | string | `"libx264"` | Video encoding codec. |
 | `video_pix_fmt` | string | `"yuv420p"` | Pixel format (compatibility). |
