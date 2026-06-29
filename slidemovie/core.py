@@ -1528,6 +1528,14 @@ class Movie():
                 chunk_overflow=self.chunk_overflow,
             )
 
+            chunks = getattr(client, "chunks", None)
+            if chunks and len(chunks) > 1:
+                preview = " / ".join(
+                    c[:8] + ("..." if len(c) > 8 else "")
+                    for c in chunks
+                )
+                logger.info(f"Text splitted to {len(chunks)} messages: {preview}")
+
             if not client.error:
                 return
 
