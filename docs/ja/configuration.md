@@ -31,7 +31,7 @@ parent: はじめに
 | キー | 型 | デフォルト | 説明 |
 | :--- | :--- | :--- | :--- |
 | `tts_provider` | 文字列 | `"google"` | AI プロバイダー (`google`, `openai` または `azure`)。 |
-| `tts_model` | 文字列 | `"gemini-2.5-flash-..."` | 使用する具体的なモデル名。Google と OpenAI では使用し、Azure では不要。 |
+| `tts_model` | 文字列 | `"gemini-3.1-flash-tts-preview"` | 使用する具体的なモデル名。Google と OpenAI では使用し、Azure では不要。 |
 | `tts_voice` | 文字列 | `"sadaltager"` | 話者 ID (例: OpenAI の場合は `alloy`、Azure で英語の場合は `en-US-AvaMultilingualNeural`)。 |
 | `tts_use_prompt`| 真偽値 | `true` | TTS API にシステムプロンプトを送信するかどうか。Google では true, OpenAI と Azure では false |
 | `prompt` | 文字列 | `"Please speak..."` | TTS エンジンへのシステム指示（プロンプト）。 |

@@ -30,7 +30,7 @@ See [multiai-tts](https://sekika.github.io/multiai-tts/#supported-ai-providers) 
 | Key | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `tts_provider` | string | `"google"` | The AI provider (`google`, `openai`, or `azure`). |
-| `tts_model` | string | `"gemini-2.5-flash-..."` | The specific model name. Required for Google and OpenAI; ignored for Azure. |
+| `tts_model` | string | `"gemini-3.1-flash-tts-preview"` | The specific model name. Required for Google and OpenAI; ignored for Azure. |
 | `tts_voice` | string | `"sadaltager"` | The voice ID (e.g., `alloy` for OpenAI, `en-US-AvaMultilingualNeural` for Azure and English). |
 | `tts_use_prompt`| bool | `true` | Whether to send a system prompt to the TTS API. Set `true` for google and `false` for OpenAI and Azure. |
 | `prompt` | string | `"Please speak..."` | The system instruction for the TTS engine. |

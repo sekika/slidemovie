@@ -93,7 +93,7 @@ class Movie():
 
         Settings:
             tts_provider (str): TTS provider (e.g., 'google', 'openai'). Default: 'google'.
-            tts_model (str): TTS model name. Default: 'gemini-2.5-flash-preview-tts'.
+            tts_model (str): TTS model name. Default: 'gemini-3.1-flash-tts-preview'.
             tts_voice (str): Voice setting for TTS. Default: 'sadaltager'.
             tts_use_prompt (bool): Whether to use a system prompt for TTS. Default: True.
             prompt (str): System prompt for TTS generation.
@@ -124,7 +124,7 @@ class Movie():
         return {
             # TTS settings
             "tts_provider": 'google',
-            "tts_model": 'gemini-2.5-flash-preview-tts',
+            "tts_model": 'gemini-3.1-flash-tts-preview',
             "tts_voice": 'sadaltager',
             "tts_use_prompt": True,
             "prompt": 'Please speak the following.',
