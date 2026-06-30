@@ -86,8 +86,6 @@ The style prompt (`prompt` + any per-slide `additional_prompt`) is passed to the
 *   The prompt is **re-applied to every chunk**, so the voice/tone stays consistent across the whole narration.
 *   `chunk_size` is measured against the **spoken text only** — the prompt length never counts toward it.
 
-> Earlier versions prepended the prompt into the text before splitting, so only the first chunk carried the style instruction. That limitation is resolved: the prompt now applies to all chunks.
-
 ### Caveats
 
 *   **Chunk boundaries**: Joining independently-synthesized chunks can produce slight changes in pitch or tempo at the seams. Larger `chunk_size` values mean fewer seams.
