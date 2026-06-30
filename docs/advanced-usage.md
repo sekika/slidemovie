@@ -69,8 +69,8 @@ This is **disabled by default** (`chunk_size: null`); behavior is unchanged unle
 Set `chunk_size` in `config.json`, or pass `--chunk-size` on the command line:
 
 ```bash
-# Split narration into chunks of at most ~1000 characters
-slidemovie myproject -v --chunk-size 1000
+# Split narration into chunks of at most ~800 characters
+slidemovie myproject -v --chunk-size 800
 ```
 
 | Setting | CLI | Description |

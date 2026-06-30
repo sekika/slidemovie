@@ -70,8 +70,8 @@ parent: はじめに
 `config.json` で `chunk_size` を設定するか、コマンドラインで `--chunk-size` を指定します。
 
 ```bash
-# ナレーションを最大 1000 文字程度のチャンクに分割
-slidemovie myproject -v --chunk-size 1000
+# ナレーションを最大 800 文字程度のチャンクに分割
+slidemovie myproject -v --chunk-size 800
 ```
 
 | 設定 | CLI | 説明 |
