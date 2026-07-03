@@ -11,6 +11,8 @@ Before reading the documentation, please watch this 3-minute introduction video.
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/9ZscwE06Pbo?si=introduction" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
+[More examples](https://www.youtube.com/playlist?list=PLHwO4nF1D8aM)
+
 ---
 
 **slidemovie** is a powerful Python tool designed to bridge the gap between simple text documentation and professional video presentations.
