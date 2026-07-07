@@ -29,14 +29,17 @@ See [multiai-tts](https://sekika.github.io/multiai-tts/#supported-ai-providers) 
 
 | Key | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `tts_provider` | string | `"google"` | The AI provider (`google`, `openai`, or `azure`). |
-| `tts_model` | string | `"gemini-3.1-flash-tts-preview"` | The specific model name. Required for Google and OpenAI; ignored for Azure. |
-| `tts_voice` | string | `"sadaltager"` | The voice ID (e.g., `alloy` for OpenAI, `en-US-AvaMultilingualNeural` for Azure and English). |
-| `tts_use_prompt`| bool | `true` | Whether to send a system prompt to the TTS API. Set `true` for google and `false` for OpenAI and Azure. |
+| `tts_provider` | string | `"google"` | The AI provider (`google`, `openai`, `azure`, or `voicevox`). |
+| `tts_model` | string | `"gemini-3.1-flash-tts-preview"` | The specific model name. Required for Google and OpenAI; ignored for Azure and VOICEVOX. |
+| `tts_voice` | string | `"sadaltager"` | The voice ID (e.g., `alloy` for OpenAI, `en-US-AvaMultilingualNeural` for Azure and English). For VOICEVOX, an **integer speaker style ID** (e.g., `"3"`). |
+| `tts_use_prompt`| bool | `true` | Whether to send a system prompt to the TTS API. Set `true` for google and `false` for OpenAI, Azure and VOICEVOX. |
 | `prompt` | string | `"Please speak..."` | The system instruction for the TTS engine. |
 | `chunk_size` | int / null | `null` | Max characters per chunk for long narration. `null` disables splitting (default behavior). Measured against the spoken text only, not the prompt. See [Long narration](advanced-usage.md#long-narration-automatic-chunking). |
 | `split_chars` | string | `"。．.!！?？\n"` | Candidate characters where the text may be split into chunks. |
 | `chunk_overflow` | string | `"extend"` | Behavior when no split candidate is found within `chunk_size`: `"extend"` reads on to the next candidate; `"error"` stops with an error. |
+| `tts_voicevox_url` | string / null | `null` | VOICEVOX engine URL. `null` uses the default (`http://127.0.0.1:50021`). Only used when `tts_provider` is `voicevox`. |
+
+> **VOICEVOX:** [VOICEVOX](https://voicevox.hiroshiba.jp/) runs as a **local engine** and must already be running before you build (default `http://127.0.0.1:50021`). No API key is required, `tts_model` is ignored, and `tts_voice` must be an integer speaker style ID. Set `tts_use_prompt` to `false` so the style prompt is not read aloud.
 
 ### Video Format
 
@@ -79,6 +82,16 @@ To create a **Full HD (1080p)** video using **OpenAI**, save this as `config.jso
     "tts_voice": "alloy",
     "tts_use_prompt": false,
     "screen_size": [1920, 1080]
+}
+```
+
+To use **VOICEVOX** (start the local engine first):
+
+```json
+{
+    "tts_provider": "voicevox",
+    "tts_voice": "3",
+    "tts_use_prompt": false
 }
 ```
 

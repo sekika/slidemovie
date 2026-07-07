@@ -75,9 +75,10 @@ slidemovie [PROJECT_NAME] [OPTIONS]
 
 These options override settings defined in `config.json` for the current run only.
 
-*   **`--tts-provider NAME`**: e.g., `google`, `openai`, `azure`.
-*   **`--tts-model NAME`**: e.g., `gpt-4o-mini-tts`, `gemini-3.1-flash-tts-preview`.
-*   **`--tts-voice NAME`**: e.g., `cedar`, `charon`.
+*   **`--tts-provider NAME`**: e.g., `google`, `openai`, `azure`, `voicevox`.
+*   **`--tts-model NAME`**: e.g., `gpt-4o-mini-tts`, `gemini-3.1-flash-tts-preview` (not used by `azure`/`voicevox`).
+*   **`--tts-voice NAME`**: e.g., `cedar`, `charon`. For `voicevox`, an integer speaker style ID (e.g., `3`).
+*   **`--tts-voicevox-url URL`**: VOICEVOX engine URL (default `http://127.0.0.1:50021`). Only used with `--tts-provider voicevox`.
 *   **`--prompt TEXT`**: Overrides the system prompt and enables prompt usage (`tts_use_prompt=True`).
 *   **`--no-prompt`**: Disables the use of a system prompt (`tts_use_prompt=False`).
 *   **`--chunk-size N`**: Max characters per TTS chunk. Setting this enables automatic splitting of long narration (see [Long narration](advanced-usage.md#long-narration-automatic-chunking)).
@@ -108,4 +109,9 @@ slidemovie tutorial -s ./content -v
 **3. Building a subproject with OpenAI TTS:**
 ```bash
 slidemovie Course101 --sub Lesson01 -v --tts-provider openai --tts-model gpt-4o-mini-tts --no-prompt --tts-voice alloy
+```
+
+**4. Building with VOICEVOX (local engine, must be running):**
+```bash
+slidemovie tutorial -v --tts-provider voicevox --tts-voice 3 --no-prompt
 ```

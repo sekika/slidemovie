@@ -79,3 +79,5 @@ The configuration file handles model selection, but the API Key configuration fo
 Please refer to the official **[multiai documentation](https://sekika.github.io/multiai/)** for detailed instructions on how to configure your API keys.
 
 > **Note:** Without a valid API key configuration matching your selected provider (Google Gemini, OpenAI or Azure), the audio generation step will fail.
+
+> **VOICEVOX:** If you select the `voicevox` provider, no API key is required. Instead, the [VOICEVOX engine](https://voicevox.hiroshiba.jp/) must be running locally (default `http://127.0.0.1:50021`) before you build. See [Configuration](../configuration/) for `tts_voice` (speaker style ID) and `tts_voicevox_url`.

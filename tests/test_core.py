@@ -189,7 +189,82 @@ class TestBuildLogic:
     def test_check_external_tools_missing(self, mocker):
         """Test if program exits when tools are missing."""
         mocker.patch('shutil.which', return_value=None)
-        
+
         with pytest.raises(SystemExit) as e:
             Movie()
         assert e.value.code == 1
+
+class TestVoicevox:
+    def test_default_settings_include_voicevox_url(self, movie):
+        """tts_voicevox_url exists as a setting and defaults to None."""
+        assert hasattr(movie, 'tts_voicevox_url')
+        assert movie.tts_voicevox_url is None
+
+    def test_get_tts_config_includes_voicevox_url(self, movie):
+        """tts_voicevox_url is part of the change-detection config."""
+        cfg = movie._get_tts_config()
+        assert 'tts_voicevox_url' in cfg
+
+    def test_speak_to_wav_voicevox(self, movie):
+        """VOICEVOX branch sets provider, integer style ID and URL."""
+        movie.tts_provider = 'voicevox'
+        movie.tts_voice = '3'  # string style ID from config/CLI
+        movie.tts_voicevox_url = 'http://127.0.0.1:50021'
+        movie.tts_use_prompt = False
+        movie.max_retry = 2
+
+        fake_client = MagicMock()
+        fake_client.error = False
+        fake_client.chunks = None
+
+        with patch('slidemovie.core.multiai_tts.Prompt', return_value=fake_client):
+            movie._speak_to_wav('こんにちは', '/tmp/out.wav')
+
+        fake_client.set_tts_provider.assert_called_with('voicevox')
+        # style ID must be converted to an integer
+        assert fake_client.tts_voice_voicevox == 3
+        assert isinstance(fake_client.tts_voice_voicevox, int)
+        assert fake_client.tts_voicevox_url == 'http://127.0.0.1:50021'
+
+    def test_speak_to_wav_voicevox_invalid_voice(self, movie):
+        """A non-integer style ID exits with an error."""
+        movie.tts_provider = 'voicevox'
+        movie.tts_voice = 'sadaltager'  # not an integer
+        movie.tts_voicevox_url = None
+        movie.tts_use_prompt = False
+        movie.max_retry = 2
+
+        fake_client = MagicMock()
+        fake_client.error = False
+        fake_client.chunks = None
+
+        with patch('slidemovie.core.multiai_tts.Prompt', return_value=fake_client):
+            with pytest.raises(SystemExit):
+                movie._speak_to_wav('こんにちは', '/tmp/out.wav')
+
+    def test_backfill_voicevox_url_no_prompt(self, movie, tmp_path, mocker):
+        """Old status files without tts_voicevox_url must not trigger a prompt."""
+        movie.project_id = "test_proj"
+        movie.md_file = str(tmp_path / "test.md")
+        movie.slide_file = str(tmp_path / "test.pptx")
+        movie.status_file = str(tmp_path / "status.json")
+
+        # Build a state file whose tts_config lacks tts_voicevox_url but
+        # otherwise matches the current settings.
+        current = movie._get_tts_config()
+        stored = dict(current)
+        del stored['tts_voicevox_url']
+
+        state = movie._init_audio_state(movie.status_file)
+        state['build_config'] = movie._get_build_config()
+        state['tts_config'] = stored
+        with open(movie.status_file, 'w', encoding='utf-8') as f:
+            json.dump(state, f, ensure_ascii=False)
+
+        # If a prompt were triggered, input() would be called; make it fail loudly.
+        input_mock = mocker.patch('builtins.input', side_effect=AssertionError("prompt triggered"))
+
+        loaded = movie._load_audio_state()
+
+        input_mock.assert_not_called()
+        assert loaded['tts_config']['tts_voicevox_url'] is None

@@ -78,3 +78,5 @@ slidemovie
 API キーの設定方法については、**[multiai の公式ドキュメント](https://sekika.github.io/multiai/)** の指示に従ってください。
 
 > **注意:** 選択したプロバイダー（Google Gemini または OpenAI）に対応する正しい API キーが設定されていない場合、音声生成のステップで失敗します。
+
+> **VOICEVOX について:** `voicevox` プロバイダーを選択した場合、API キーは不要です。代わりに、ビルド前に [VOICEVOX エンジン](https://voicevox.hiroshiba.jp/) をローカルで起動しておく必要があります（既定 `http://127.0.0.1:50021`）。`tts_voice`（話者 style ID）や `tts_voicevox_url` については [設定](../configuration/) を参照してください。

@@ -30,14 +30,17 @@ parent: はじめに
 
 | キー | 型 | デフォルト | 説明 |
 | :--- | :--- | :--- | :--- |
-| `tts_provider` | 文字列 | `"google"` | AI プロバイダー (`google`, `openai` または `azure`)。 |
-| `tts_model` | 文字列 | `"gemini-3.1-flash-tts-preview"` | 使用する具体的なモデル名。Google と OpenAI では使用し、Azure では不要。 |
-| `tts_voice` | 文字列 | `"sadaltager"` | 話者 ID (例: OpenAI の場合は `alloy`、Azure で英語の場合は `en-US-AvaMultilingualNeural`)。 |
-| `tts_use_prompt`| 真偽値 | `true` | TTS API にシステムプロンプトを送信するかどうか。Google では true, OpenAI と Azure では false |
+| `tts_provider` | 文字列 | `"google"` | AI プロバイダー (`google`, `openai`, `azure` または `voicevox`)。 |
+| `tts_model` | 文字列 | `"gemini-3.1-flash-tts-preview"` | 使用する具体的なモデル名。Google と OpenAI では使用し、Azure と VOICEVOX では不要。 |
+| `tts_voice` | 文字列 | `"sadaltager"` | 話者 ID (例: OpenAI の場合は `alloy`、Azure で英語の場合は `en-US-AvaMultilingualNeural`)。VOICEVOX では **整数の話者 style ID**（例: `"3"`）。 |
+| `tts_use_prompt`| 真偽値 | `true` | TTS API にシステムプロンプトを送信するかどうか。Google では true, OpenAI・Azure・VOICEVOX では false |
 | `prompt` | 文字列 | `"Please speak..."` | TTS エンジンへのシステム指示（プロンプト）。 |
 | `chunk_size` | int / null | `null` | 長いナレーションを分割する際の 1 チャンクあたりの最大文字数。`null` で分割無効（デフォルト動作）。プロンプトは含めず読み上げ本文の長さのみで評価される。[長文ナレーション](advanced-usage.md#長文ナレーションの自動チャンク分割) を参照。 |
 | `split_chars` | 文字列 | `"。．.!！?？\n"` | テキストを分割する候補となる文字。 |
 | `chunk_overflow` | 文字列 | `"extend"` | `chunk_size` 以内に分割候補が見つからない場合の挙動。`"extend"` は次の候補まで読み進める。`"error"` はエラーで停止する。 |
+| `tts_voicevox_url` | 文字列 / null | `null` | VOICEVOX エンジンの URL。`null` の場合は既定値（`http://127.0.0.1:50021`）を使用する。`tts_provider` が `voicevox` のときのみ使用される。 |
+
+> **VOICEVOX について:** [VOICEVOX](https://voicevox.hiroshiba.jp/) は**ローカルエンジン**として動作し、ビルド前に起動しておく必要があります（既定 `http://127.0.0.1:50021`）。API キーは不要で、`tts_model` は無視され、`tts_voice` には整数の話者 style ID を指定します。スタイルプロンプトが読み上げられないよう `tts_use_prompt` は `false` に設定してください。
 
 ### 動画フォーマット
 
@@ -80,6 +83,16 @@ parent: はじめに
     "tts_voice": "alloy",
     "tts_use_prompt": false,
     "screen_size": [1920, 1080]
+}
+```
+
+**VOICEVOX** を使う場合（先にローカルエンジンを起動してください）:
+
+```json
+{
+    "tts_provider": "voicevox",
+    "tts_voice": "3",
+    "tts_use_prompt": false
 }
 ```
 

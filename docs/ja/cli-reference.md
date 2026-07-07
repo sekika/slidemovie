@@ -76,9 +76,10 @@ slidemovie [プロジェクト名] [オプション]
 
 これらのオプションは、`config.json` の設定を **今回の実行に限り** 上書きします。
 
-*   **`--tts-provider NAME`**: 例: `google`, `openai`, `azure`
-*   **`--tts-model NAME`**: 例: `gpt-4o-mini-tts`, `gemini-3.1-flash-tts-preview`
-*   **`--tts-voice NAME`**: 例: `cedar`, `charon`
+*   **`--tts-provider NAME`**: 例: `google`, `openai`, `azure`, `voicevox`
+*   **`--tts-model NAME`**: 例: `gpt-4o-mini-tts`, `gemini-3.1-flash-tts-preview`（`azure`・`voicevox` では不要）
+*   **`--tts-voice NAME`**: 例: `cedar`, `charon`。`voicevox` の場合は整数の話者 style ID（例: `3`）
+*   **`--tts-voicevox-url URL`**: VOICEVOX エンジンの URL（デフォルト `http://127.0.0.1:50021`）。`--tts-provider voicevox` のときのみ使用
 *   **`--prompt TEXT`**: TTS生成時のシステムプロンプトを上書きし、プロンプトの使用を有効にします (`tts_use_prompt=True`)。
 *   **`--no-prompt`**: システムプロンプトの使用を無効にします (`tts_use_prompt=False`)。
 *   **`--chunk-size N`**: TTS の 1 チャンクあたりの最大文字数。指定すると長文ナレーションの自動分割が有効になります（[長文ナレーション](advanced-usage.md#長文ナレーションの自動チャンク分割) を参照）。
@@ -109,4 +110,9 @@ slidemovie tutorial -s ./content -v
 **3. サブプロジェクトを OpenAI の音声でビルド:**
 ```bash
 slidemovie Course101 --sub Lesson01 -v --tts-provider openai --tts-model gpt-4o-mini-tts --no-prompt --tts-voice alloy
+```
+
+**4. VOICEVOX でビルド（ローカルエンジンを起動しておくこと）:**
+```bash
+slidemovie tutorial -v --tts-provider voicevox --tts-voice 3 --no-prompt
 ```

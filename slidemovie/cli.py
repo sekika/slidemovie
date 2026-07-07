@@ -88,6 +88,9 @@ def main():
     parser.add_argument("--tts-model", help="TTS Model name")
     parser.add_argument("--tts-voice", help="TTS Voice/Speaker setting")
     parser.add_argument(
+        "--tts-voicevox-url",
+        help="VOICEVOX engine URL (default: http://127.0.0.1:50021). Only used with --tts-provider voicevox.")
+    parser.add_argument(
         "--prompt",
         help="Override TTS system prompt (automatically enables prompt usage)")
     parser.add_argument(
@@ -136,6 +139,8 @@ def main():
         movie.tts_model = args.tts_model
     if args.tts_voice:
         movie.tts_voice = args.tts_voice
+    if args.tts_voicevox_url:
+        movie.tts_voicevox_url = args.tts_voicevox_url
     if args.prompt:
         movie.prompt = args.prompt
         movie.tts_use_prompt = True

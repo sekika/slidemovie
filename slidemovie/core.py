@@ -92,7 +92,7 @@ class Movie():
         Returns the default configuration dictionary.
 
         Settings:
-            tts_provider (str): TTS provider (e.g., 'google', 'openai'). Default: 'google'.
+            tts_provider (str): TTS provider ('google', 'openai', 'azure', or 'voicevox'). Default: 'google'.
             tts_model (str): TTS model name. Default: 'gemini-3.1-flash-tts-preview'.
             tts_voice (str): Voice setting for TTS. Default: 'sadaltager'.
             tts_use_prompt (bool): Whether to use a system prompt for TTS. Default: True.
@@ -102,6 +102,8 @@ class Movie():
             split_chars (str): Candidate split characters for chunking. Default: "。．.!！?？\n".
             chunk_overflow (str): Behavior when no split candidate is found within chunk_size.
                 'extend' reads on to the next candidate; 'error' stops with an error. Default: 'extend'.
+            tts_voicevox_url (str or None): VOICEVOX engine URL. None uses multiai-tts's
+                default (http://127.0.0.1:50021). Only used when tts_provider is 'voicevox'. Default: None.
             screen_size (list): Video resolution [width, height]. Default: [1280, 720].
             use_pdf (bool): Use a PDF file as the image source instead of PPTX. Default: False.
             image_pad_color (str): Padding color for aspect-ratio-preserving letterbox/pillarbox
@@ -131,6 +133,7 @@ class Movie():
             "chunk_size": None,
             "split_chars": "。．.!！?？\n",
             "chunk_overflow": "extend",
+            "tts_voicevox_url": None,
 
             # Screen settings (Defined as list for JSON serialization)
             "screen_size": [1280, 720],
@@ -1241,14 +1244,15 @@ class Movie():
             self._save_audio_state(state)
 
         else:
-            # Backfill chunk keys added in later versions so that old state files
+            # Backfill TTS keys added in later versions so that old state files
             # (which lack them) do not trigger a spurious change prompt. The
-            # defaults match the original no-split behavior, so existing
-            # projects are unaffected.
+            # defaults match the original behavior, so existing projects are
+            # unaffected.
             chunk_defaults = {
                 "chunk_size": None,
                 "split_chars": "。．.!！?？\n",
                 "chunk_overflow": "extend",
+                "tts_voicevox_url": None,
             }
             backfilled = False
             for key, default in chunk_defaults.items():
@@ -1351,6 +1355,7 @@ class Movie():
             "chunk_size": self.chunk_size,
             "split_chars": self.split_chars,
             "chunk_overflow": self.chunk_overflow,
+            "tts_voicevox_url": self.tts_voicevox_url,
         }
 
     def _get_wav_duration(self, wav_path):
@@ -1509,6 +1514,21 @@ class Movie():
         if self.tts_provider == 'azure':
             client.set_tts_provider(self.tts_provider)
             client.tts_voice_azure = self.tts_voice
+        if self.tts_provider == 'voicevox':
+            # VOICEVOX runs as a local engine (no API key, no model). The
+            # speaker is selected by an integer style ID.
+            client.set_tts_provider(self.tts_provider)
+            try:
+                client.tts_voice_voicevox = int(self.tts_voice)
+            except (TypeError, ValueError):
+                logger.error(
+                    f'Invalid tts_voice for VOICEVOX: {self.tts_voice!r}. '
+                    'It must be an integer speaker style ID.')
+                sys.exit(1)
+            # Override the engine URL only when explicitly configured;
+            # otherwise multiai-tts uses its default (http://127.0.0.1:50021).
+            if self.tts_voicevox_url:
+                client.tts_voicevox_url = self.tts_voicevox_url
 
         # Style prompt is kept separate from the spoken text and passed via the
         # `prompt` argument. multiai-tts re-applies it to every chunk and measures
@@ -1549,7 +1569,13 @@ class Movie():
                 'chunk' in error_message.lower()
                 or 'split' in error_message.lower())
 
-            if 'RESOURCE_EXHAUSTED' in error_message or is_split_failure:
+            # VOICEVOX runs as a local engine; if it is not reachable, waiting
+            # 3 minutes and retrying will fail identically. Exit immediately so
+            # the user can start the engine.
+            is_voicevox_unreachable = self.tts_provider == 'voicevox'
+
+            if ('RESOURCE_EXHAUSTED' in error_message or is_split_failure
+                    or is_voicevox_unreachable):
                 logger.error(error_message)
                 sys.exit()
             else:

@@ -21,7 +21,7 @@
 ## ✨ Features
 
 *   **Markdown-Based**: Write your slide content and narration script in a single text file.
-*   **AI Narration**: Automatically generates natural voiceovers using **Google Gemini**, **OpenAI** or **Azure** (via `multiai-tts`).
+*   **AI Narration**: Automatically generates natural voiceovers using **Google Gemini**, **OpenAI**, **Azure**, or **VOICEVOX** (via `multiai-tts`).
 *   **PowerPoint Integration**: Use PowerPoint's AI "Designer" to create professional visuals instantly.
 *   **No Video Editing**: Audio and visuals are automatically synchronized.
 *   **Incremental Builds**: Only regenerates changed slides to save time and API costs.
