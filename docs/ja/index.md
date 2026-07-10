@@ -37,3 +37,7 @@ has_children: true
 *   **長文ナレーション対応**: 長いナレーションをチャンクに分割して安定して合成できます（`--chunk-size`）。
 
 まずは **[インストール](./installation/)** ページへ進んで準備を始めましょう。
+
+## ヘルプ
+
+* [slidemovie ヘルプ](https://gemini.google.com/gem/1wmhVX7e2_tbMIiMWnNYDGx8ych7WjJw1?usp=sharing): slidemovie のドキュメントとソースコードをもとに、使い方や仕様、動作について質問できます。
