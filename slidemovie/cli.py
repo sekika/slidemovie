@@ -98,6 +98,10 @@ def main():
         action="store_true",
         help="Disable TTS system prompt")
     parser.add_argument(
+        "--prompt-separator",
+        help="Separator inserted between the style prompt and the spoken text "
+             '(e.g. "\\n\\n## 原稿\\n"). Empty by default.')
+    parser.add_argument(
         "--chunk-size", type=int,
         help="Max characters per TTS chunk. Enables automatic text splitting when set.")
     parser.add_argument(
@@ -146,6 +150,10 @@ def main():
         movie.tts_use_prompt = True
     if args.no_prompt:
         movie.tts_use_prompt = False
+    # Use `is not None` so that --prompt-separator "" (an explicit empty value)
+    # is honored rather than ignored.
+    if args.prompt_separator is not None:
+        movie.prompt_separator = args.prompt_separator
     # Use `is not None` so that --chunk-size 0 (an explicit value) is not ignored.
     if args.chunk_size is not None:
         movie.chunk_size = args.chunk_size

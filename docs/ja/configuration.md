@@ -35,6 +35,7 @@ parent: はじめに
 | `tts_voice` | 文字列 | `"sadaltager"` | 話者 ID (例: OpenAI の場合は `alloy`、Azure で英語の場合は `en-US-AvaMultilingualNeural`)。VOICEVOX では **整数の話者 style ID**（例: `"3"`）。 |
 | `tts_use_prompt`| 真偽値 | `true` | TTS API にシステムプロンプトを送信するかどうか。Google では true, OpenAI・Azure・VOICEVOX では false |
 | `prompt` | 文字列 | `"Please speak..."` | TTS エンジンへのシステム指示（プロンプト）。 |
+| `prompt_separator` | 文字列 | `""` | スタイルプロンプト（`prompt` ＋ スライドごとの `additional_prompt`）と読み上げ本文の間に挿入する区切り文字列。空で無効（デフォルト）。長いプロンプトで原稿の開始位置を明示したい場合に有用（例: `"\n\n## 原稿\n"`）。[スライドごとのカスタムプロンプト](advanced-usage.md#スライドごとのカスタムプロンプト) を参照。 |
 | `chunk_size` | int / null | `null` | 長いナレーションを分割する際の 1 チャンクあたりの最大文字数。`null` で分割無効（デフォルト動作）。プロンプトは含めず読み上げ本文の長さのみで評価される。[長文ナレーション](advanced-usage.md#長文ナレーションの自動チャンク分割) を参照。 |
 | `split_chars` | 文字列 | `"。．.!！?？\n"` | テキストを分割する候補となる文字。 |
 | `chunk_overflow` | 文字列 | `"extend"` | `chunk_size` 以内に分割候補が見つからない場合の挙動。`"extend"` は次の候補まで読み進める。`"error"` はエラーで停止する。 |

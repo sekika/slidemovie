@@ -82,6 +82,7 @@ slidemovie [プロジェクト名] [オプション]
 *   **`--tts-voicevox-url URL`**: VOICEVOX エンジンの URL（デフォルト `http://127.0.0.1:50021`）。`--tts-provider voicevox` のときのみ使用
 *   **`--prompt TEXT`**: TTS生成時のシステムプロンプトを上書きし、プロンプトの使用を有効にします (`tts_use_prompt=True`)。
 *   **`--no-prompt`**: システムプロンプトの使用を無効にします (`tts_use_prompt=False`)。
+*   **`--prompt-separator STR`**: スタイルプロンプトと読み上げ本文の間に挿入する区切り文字列。例: `"\n\n## 原稿\n"`（[プロンプトと原稿の区切り](advanced-usage.md#プロンプトと原稿の区切り-prompt_separator) を参照）。デフォルトは空文字列。
 *   **`--chunk-size N`**: TTS の 1 チャンクあたりの最大文字数。指定すると長文ナレーションの自動分割が有効になります（[長文ナレーション](advanced-usage.md#長文ナレーションの自動チャンク分割) を参照）。
 *   **`--split-chars STR`**: 分割候補となる文字列（デフォルト: `。．.!！?？` と改行）。
 *   **`--chunk-overflow {extend,error}`**: `--chunk-size` 以内に分割候補が見つからない場合の挙動。`extend` は次の候補まで読み進め、`error` はエラーで停止します。

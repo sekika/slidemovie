@@ -97,6 +97,9 @@ class Movie():
             tts_voice (str): Voice setting for TTS. Default: 'sadaltager'.
             tts_use_prompt (bool): Whether to use a system prompt for TTS. Default: True.
             prompt (str): System prompt for TTS generation.
+            prompt_separator (str): Separator inserted between the style prompt
+                (prompt + additional_prompt) and the spoken text. Empty disables
+                it (original behavior). Default: "".
             chunk_size (int or None): Max characters per TTS chunk, measured against the
                 spoken text only. None disables splitting (original behavior). Default: None.
             split_chars (str): Candidate split characters for chunking. Default: "。．.!！?？\n".
@@ -130,6 +133,7 @@ class Movie():
             "tts_voice": 'sadaltager',
             "tts_use_prompt": True,
             "prompt": 'Please speak the following.',
+            "prompt_separator": "",
             "chunk_size": None,
             "split_chars": "。．.!！?？\n",
             "chunk_overflow": "extend",
@@ -1248,14 +1252,15 @@ class Movie():
             # (which lack them) do not trigger a spurious change prompt. The
             # defaults match the original behavior, so existing projects are
             # unaffected.
-            chunk_defaults = {
+            tts_defaults = {
                 "chunk_size": None,
                 "split_chars": "。．.!！?？\n",
                 "chunk_overflow": "extend",
                 "tts_voicevox_url": None,
+                "prompt_separator": "",
             }
             backfilled = False
-            for key, default in chunk_defaults.items():
+            for key, default in tts_defaults.items():
                 if key not in stored_tts:
                     stored_tts[key] = default
                     backfilled = True
@@ -1352,6 +1357,7 @@ class Movie():
             "voice": self.tts_voice,
             "use_prompt": self.tts_use_prompt,
             "prompt": self.prompt,
+            "prompt_separator": self.prompt_separator,
             "chunk_size": self.chunk_size,
             "split_chars": self.split_chars,
             "chunk_overflow": self.chunk_overflow,
@@ -1533,8 +1539,11 @@ class Movie():
         # Style prompt is kept separate from the spoken text and passed via the
         # `prompt` argument. multiai-tts re-applies it to every chunk and measures
         # `chunk_size` against the spoken text only. Empty disables it (original behavior).
+        # `prompt_separator` is appended after the instructions (prompt +
+        # additional_prompt) so that any per-slide additional_prompt stays on the
+        # instruction side of the separator, not in the spoken-text section.
         if self.tts_use_prompt:
-            style_prompt = f'{self.prompt}{additional_prompt}'
+            style_prompt = f'{self.prompt}{additional_prompt}{self.prompt_separator}'
         else:
             style_prompt = ''
 

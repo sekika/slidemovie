@@ -55,8 +55,29 @@ While the `prompt` in `config.json` sets the global system instruction for the T
 }
 ```
 
-*   **Effect**: When regenerating audio for this slide, the TTS engine will receive: `Global Prompt` + `Additional Prompt` + `Slide Notes`.
+*   **Effect**: When regenerating audio for this slide, the TTS engine will receive: `Global Prompt` + `Additional Prompt` + `prompt_separator` + `Slide Notes`.
 *   **Triggering Regeneration**: After editing `additional_prompt`, you must force regeneration. The easiest way is to change the `"status"` value from `"generated"` to something else (e.g., `"missing"` or `"update"`) in `status.json`.
+
+### Separating the prompt from the script (`prompt_separator`)
+
+When your `prompt` grows long, you may want to clearly mark where the instructions end and the spoken script begins. Do **not** append the marker to the end of `prompt` — because the per-slide `additional_prompt` is inserted after `prompt`, a marker placed there would push `additional_prompt` onto the script side.
+
+Instead, set `prompt_separator` (in `config.json` or via `--prompt-separator`). It is inserted between the instructions and the spoken text, so the order the engine receives is always:
+
+```
+{prompt}{additional_prompt}{prompt_separator}{spoken text}
+```
+
+Both `prompt` and `additional_prompt` stay on the instruction side of the separator. Choose a value that reads naturally in your narration language, for example:
+
+```json
+{
+  "prompt": "You are a professional narrator. Read calmly and clearly.",
+  "prompt_separator": "\n\nScript:\n"
+}
+```
+
+For English, `"\n\n## Script\n"` works well. The default is `""` (disabled), so existing projects are unaffected. `prompt_separator` is part of the recorded TTS configuration, so changing it triggers the "TTS config change detected" prompt (see [Long narration → Caveats](#caveats)).
 
 ## Long narration (automatic chunking)
 
@@ -83,8 +104,8 @@ slidemovie myproject -v --chunk-size 800
 
 The style prompt (`prompt` + any per-slide `additional_prompt`) is passed to the TTS engine **separately** from the spoken text. As a result:
 
-*   The prompt is **re-applied to every chunk**, so the voice/tone stays consistent across the whole narration.
-*   `chunk_size` is measured against the **spoken text only** — the prompt length never counts toward it.
+*   The prompt is **re-applied to every chunk**, so the voice/tone stays consistent across the whole narration. This includes any `prompt_separator`, which is part of the style prompt.
+*   `chunk_size` is measured against the **spoken text only** — the prompt (including `prompt_separator`) length never counts toward it.
 
 ### Caveats
 

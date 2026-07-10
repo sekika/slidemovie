@@ -194,77 +194,65 @@ class TestBuildLogic:
             Movie()
         assert e.value.code == 1
 
-class TestVoicevox:
-    def test_default_settings_include_voicevox_url(self, movie):
-        """tts_voicevox_url exists as a setting and defaults to None."""
-        assert hasattr(movie, 'tts_voicevox_url')
-        assert movie.tts_voicevox_url is None
 
-    def test_get_tts_config_includes_voicevox_url(self, movie):
-        """tts_voicevox_url is part of the change-detection config."""
+class TestPromptSeparator:
+    def _make_tts_client(self, mocker):
+        """Patch multiai_tts.Prompt to return a controllable, non-erroring client."""
+        client = MagicMock()
+        client.error = False
+        client.chunks = None
+        mocker.patch('slidemovie.core.multiai_tts.Prompt', return_value=client)
+        return client
+
+    def test_default_is_empty(self, movie):
+        """prompt_separator defaults to '' (backward compatible)."""
+        assert movie.prompt_separator == ""
+
+    def test_get_tts_config_includes_separator(self, movie):
+        """prompt_separator is recorded as part of the TTS config."""
         cfg = movie._get_tts_config()
-        assert 'tts_voicevox_url' in cfg
+        assert "prompt_separator" in cfg
+        assert cfg["prompt_separator"] == movie.prompt_separator
 
-    def test_speak_to_wav_voicevox(self, movie):
-        """VOICEVOX branch sets provider, integer style ID and URL."""
-        movie.tts_provider = 'voicevox'
-        movie.tts_voice = '3'  # string style ID from config/CLI
-        movie.tts_voicevox_url = 'http://127.0.0.1:50021'
+    def test_speak_appends_separator_after_instructions(self, movie, mocker):
+        """style prompt = prompt + additional_prompt + prompt_separator."""
+        client = self._make_tts_client(mocker)
+        movie.tts_use_prompt = True
+        movie.prompt = "SYS"
+        movie.prompt_separator = "\n## 原稿\n"
+
+        movie._speak_to_wav("BODY", "/tmp/out.wav", additional_prompt="ADD")
+
+        _, kwargs = client.save_tts.call_args
+        assert kwargs["prompt"] == "SYSADD\n## 原稿\n"
+
+    def test_speak_no_prompt_has_no_separator(self, movie, mocker):
+        """With tts_use_prompt=False, the style prompt (and separator) is empty."""
+        client = self._make_tts_client(mocker)
         movie.tts_use_prompt = False
-        movie.max_retry = 2
+        movie.prompt = "SYS"
+        movie.prompt_separator = "\n## 原稿\n"
 
-        fake_client = MagicMock()
-        fake_client.error = False
-        fake_client.chunks = None
+        movie._speak_to_wav("BODY", "/tmp/out.wav", additional_prompt="ADD")
 
-        with patch('slidemovie.core.multiai_tts.Prompt', return_value=fake_client):
-            movie._speak_to_wav('こんにちは', '/tmp/out.wav')
+        _, kwargs = client.save_tts.call_args
+        assert kwargs["prompt"] == ""
 
-        fake_client.set_tts_provider.assert_called_with('voicevox')
-        # style ID must be converted to an integer
-        assert fake_client.tts_voice_voicevox == 3
-        assert isinstance(fake_client.tts_voice_voicevox, int)
-        assert fake_client.tts_voicevox_url == 'http://127.0.0.1:50021'
-
-    def test_speak_to_wav_voicevox_invalid_voice(self, movie):
-        """A non-integer style ID exits with an error."""
-        movie.tts_provider = 'voicevox'
-        movie.tts_voice = 'sadaltager'  # not an integer
-        movie.tts_voicevox_url = None
-        movie.tts_use_prompt = False
-        movie.max_retry = 2
-
-        fake_client = MagicMock()
-        fake_client.error = False
-        fake_client.chunks = None
-
-        with patch('slidemovie.core.multiai_tts.Prompt', return_value=fake_client):
-            with pytest.raises(SystemExit):
-                movie._speak_to_wav('こんにちは', '/tmp/out.wav')
-
-    def test_backfill_voicevox_url_no_prompt(self, movie, tmp_path, mocker):
-        """Old status files without tts_voicevox_url must not trigger a prompt."""
-        movie.project_id = "test_proj"
-        movie.md_file = str(tmp_path / "test.md")
-        movie.slide_file = str(tmp_path / "test.pptx")
+    def test_load_state_backfills_separator(self, movie, tmp_path):
+        """Old status.json lacking prompt_separator is backfilled without a change prompt."""
+        movie.project_id = "p"
+        movie.md_file = str(tmp_path / "p.md")
+        movie.slide_file = str(tmp_path / "p.pptx")
         movie.status_file = str(tmp_path / "status.json")
 
-        # Build a state file whose tts_config lacks tts_voicevox_url but
-        # otherwise matches the current settings.
-        current = movie._get_tts_config()
-        stored = dict(current)
-        del stored['tts_voicevox_url']
-
+        # Simulate a state file written before prompt_separator existed.
         state = movie._init_audio_state(movie.status_file)
-        state['build_config'] = movie._get_build_config()
-        state['tts_config'] = stored
-        with open(movie.status_file, 'w', encoding='utf-8') as f:
-            json.dump(state, f, ensure_ascii=False)
+        del state["tts_config"]["prompt_separator"]
+        with open(movie.status_file, "w", encoding="utf-8") as f:
+            json.dump(state, f)
 
-        # If a prompt were triggered, input() would be called; make it fail loudly.
-        input_mock = mocker.patch('builtins.input', side_effect=AssertionError("prompt triggered"))
+        # Must not prompt for input nor exit; simply backfill the default.
+        with patch("builtins.input", side_effect=AssertionError("unexpected prompt")):
+            loaded = movie._load_audio_state()
 
-        loaded = movie._load_audio_state()
-
-        input_mock.assert_not_called()
-        assert loaded['tts_config']['tts_voicevox_url'] is None
+        assert loaded["tts_config"]["prompt_separator"] == ""

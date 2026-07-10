@@ -124,5 +124,35 @@ def test_cli_prompt_logic(mock_movie_class):
     args_case2 = ['slidemovie', 'Proj', '--video', '--no-prompt']
     with patch.object(sys, 'argv', args_case2):
         cli.main()
-        
+
     assert mock_instance.tts_use_prompt is False
+
+def test_cli_prompt_separator(mock_movie_class):
+    """Test that --prompt-separator sets the attribute, including an empty value."""
+    mock_instance = mock_movie_class.return_value
+
+    # Case 1: a non-empty separator is applied
+    args_case1 = ['slidemovie', 'Proj', '--video', '--prompt-separator', '\n## 原稿\n']
+    with patch.object(sys, 'argv', args_case1):
+        cli.main()
+    assert mock_instance.prompt_separator == '\n## 原稿\n'
+
+    # Case 2: an explicit empty string is honored (not ignored)
+    mock_movie_class.reset_mock()
+    mock_instance.prompt_separator = "sentinel"
+    args_case2 = ['slidemovie', 'Proj', '--video', '--prompt-separator', '']
+    with patch.object(sys, 'argv', args_case2):
+        cli.main()
+    assert mock_instance.prompt_separator == ''
+
+def test_cli_prompt_separator_absent(mock_movie_class):
+    """Test that omitting --prompt-separator leaves the attribute untouched."""
+    mock_instance = mock_movie_class.return_value
+    mock_instance.prompt_separator = "sentinel"
+
+    args = ['slidemovie', 'Proj', '--video']
+    with patch.object(sys, 'argv', args):
+        cli.main()
+
+    # Not passed -> CLI must not overwrite the config-loaded value
+    assert mock_instance.prompt_separator == "sentinel"
