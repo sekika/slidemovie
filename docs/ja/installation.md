@@ -75,7 +75,7 @@ slidemovie
 
 モデルの選択は設定ファイルで行いますが、**API キー** の設定は multiai の設定に従います。
 
-API キーの設定方法については、**[multiai の公式ドキュメント](https://sekika.github.io/multiai/)** の指示に従ってください。
+API キーの設定方法については、**[multiai の公式ドキュメント](https://sekika.github.io/multiai/index-ja.html)** の指示に従ってください。
 
 > **注意:** 選択したプロバイダー（Google Gemini または OpenAI）に対応する正しい API キーが設定されていない場合、音声生成のステップで失敗します。
 

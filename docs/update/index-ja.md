@@ -29,4 +29,4 @@ No specification file
 
 ## 参考
 - [PyPI のリリース](https://pypi.org/project/slidemovie/#history)
-- [GitHub のコミット](https://github.com/sekika/slidemovie/commits)
+- [GitHub のコミット](https://github.com/sekika/slidemovie/commits/main/slidemovie)
