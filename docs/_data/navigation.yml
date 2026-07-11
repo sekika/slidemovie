@@ -16,7 +16,7 @@ en:
   - title: "Advanced"
     url: "/advanced-usage/"
   - title: "Release"
-    url: "https://pypi.org/project/slidemovie/#history"
+    url: "/update/"
   - title: "🇯🇵 日本語"
     url: "/ja/"
 
@@ -38,6 +38,6 @@ ja:
   - title: "高度"
     url: "/ja/advanced-usage/"
   - title: "履歴"
-    url: "https://pypi.org/project/slidemovie/#history"
+    url: "/ja/release/"
   - title: "🇺🇸 English"
     url: "/"

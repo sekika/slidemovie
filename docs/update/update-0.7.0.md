@@ -1,4 +1,9 @@
-# slidemovie VOICEVOX 対応 仕様書
+---
+layout: page
+title: "0.7.0 — VOICEVOX 対応"
+version: "0.7.0"
+lang: ja
+---
 
 ## 1. 目的・背景
 

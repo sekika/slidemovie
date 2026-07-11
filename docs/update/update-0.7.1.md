@@ -1,4 +1,9 @@
-# 仕様: プロンプトと原稿の区切り (`prompt_separator`)
+---
+layout: page
+title: "0.7.1 — プロンプトと原稿の区切り (prompt_separator)"
+version: "0.7.1"
+lang: ja
+---
 
 ## 1. 背景と課題
 
