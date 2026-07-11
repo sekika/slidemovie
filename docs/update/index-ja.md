@@ -5,6 +5,8 @@ lang: ja
 permalink: /ja/release/
 ---
 
+インストールされているバージョンを確認するには、`python -m pip show slidemovie` を実行してください。最新バージョンに更新するには、`python -m pip install -U slidemovie` を実行してください。
+
 {% include release.md %}
 
 ## 仕様

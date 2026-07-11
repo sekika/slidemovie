@@ -4,6 +4,8 @@ title: Release
 lang: en
 ---
 
+To check your installed version, run: `python -m pip show slidemovie`. To upgrade to the latest version, run: `python -m pip install -U slidemovie`.
+
 {% include release.md %}
 
 ## Specification
