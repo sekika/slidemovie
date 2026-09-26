@@ -172,3 +172,54 @@ slidemovie myproject -v --debug
 This will print detailed logs about:
 *   Which files are being skipped.
 *   FFmpeg command outputs.
+
+### Missing text in generated slide images
+
+If some text is missing from generated slide images, the problem may be related to the fontconfig environment used by LibreOffice.
+
+First, check whether the `FONTCONFIG_PATH` environment variable is set:
+
+```sh
+echo "$FONTCONFIG_PATH"
+```
+
+On macOS, one possible problematic setting is the XQuartz fontconfig directory:
+
+```text
+/opt/X11/lib/X11/fontconfig
+```
+
+In this case, LibreOffice may use the XQuartz fontconfig configuration when exporting slides, which can cause some text, such as numbers or Latin characters, to disappear from generated images or PDFs even though the text is displayed correctly in LibreOffice Impress.
+
+To test whether `FONTCONFIG_PATH` is causing the problem, run LibreOffice with the variable removed:
+
+```sh
+env -u FONTCONFIG_PATH \
+  /Applications/LibreOffice.app/Contents/MacOS/soffice \
+  --headless \
+  --convert-to pdf \
+  --outdir ~/Downloads \
+  example.pptx
+```
+
+If the missing text appears correctly, remove or modify the `FONTCONFIG_PATH` setting in your shell configuration unless it is specifically required by another application.
+
+For example, with fish shell, the setting may look like:
+
+```fish
+set -x FONTCONFIG_PATH /opt/X11/lib/X11/fontconfig
+```
+
+and may be defined in:
+
+```text
+~/.config/fish/config.fish
+```
+
+After removing the setting, start a new shell or unset it in the current shell:
+
+```fish
+set -e FONTCONFIG_PATH
+```
+
+This is an environment-specific LibreOffice/fontconfig issue rather than a problem in `slidemovie` itself.

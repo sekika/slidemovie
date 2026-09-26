@@ -173,3 +173,50 @@ slidemovie myproject -v --debug
 これにより、以下のような詳細情報が表示されます：
 *   どのファイルがスキップされたか
 *   FFmpeg コマンドの出力結果
+
+### 生成したスライド画像で文字が消える場合
+
+生成したスライド画像の一部の文字が表示されない場合、LibreOffice が使用する fontconfig の環境設定が原因になっていることがあります。
+
+まず、`FONTCONFIG_PATH` 環境変数が設定されているか確認してください。
+
+```sh
+echo "$FONTCONFIG_PATH"
+```
+
+macOS では、たとえば XQuartz の fontconfig ディレクトリが次のように設定されている場合があります。
+
+```text
+/opt/X11/lib/X11/fontconfig
+```
+
+この設定があると、LibreOffice がスライドを書き出す際に XQuartz 側の fontconfig 設定を使用し、LibreOffice Impress 上では正しく表示されている文字が、生成された画像や PDF では消えることがあります。数字やアルファベットだけが消える場合もあります。
+
+`FONTCONFIG_PATH` が原因かどうかを確認するには、この環境変数を一時的に削除して LibreOffice を実行します。
+
+```sh
+env -u FONTCONFIG_PATH \
+  /Applications/LibreOffice.app/Contents/MacOS/soffice \
+  --headless \
+  --convert-to pdf \
+  --outdir ~/Downloads \
+  example.pptx
+```
+
+この状態で文字が正しく表示される場合は、他のアプリケーションで特に必要としていなければ、シェルの設定から `FONTCONFIG_PATH` の設定を削除または修正してください。
+
+たとえば fish shell では、次のような設定が
+
+```fish
+set -x FONTCONFIG_PATH /opt/X11/lib/X11/fontconfig
+```
+
+`~/.config/fish/config.fish` に記載されていることがあります。
+
+設定を削除した後、新しいシェルを起動するか、現在のシェルで次のように環境変数を削除します。
+
+```fish
+set -e FONTCONFIG_PATH
+```
+
+これは `slidemovie` 自体の問題ではなく、LibreOffice と fontconfig の実行環境に起因する問題です。
