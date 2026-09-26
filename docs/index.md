@@ -36,3 +36,7 @@ The process creates a synergy between automation and human design:
 *   **Long Narration Support**: Optionally splits long narration into chunks for stable synthesis (`--chunk-size`).
 
 Please proceed to the **[Installation](./installation/)** page to get started.
+
+## Help
+
+* [slidemovie Support](https://gemini.google.com/gem/1GArJEONbh27NswOMXZS6tfimRDEAA6KH?usp=sharing): Ask questions about how to use slidemovie, its specifications, and how it works, based on the slidemovie documentation and source code.

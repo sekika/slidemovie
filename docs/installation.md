@@ -74,10 +74,49 @@ Next, please refer to the **[Configuration](../configuration/)** page. Edit the 
 
 ### 2. Configure API Credentials
 
-The configuration file handles model selection, but the API Key configuration follows the multiai settings.
+`slidemovie` uses `multiai-tts` for text-to-speech. API credentials are managed using the same configuration mechanism as [`multiai`](https://sekika.github.io/multiai/).
 
-Please refer to the official **[multiai documentation](https://sekika.github.io/multiai/)** for detailed instructions on how to configure your API keys.
+The easiest method is to set the credentials as environment variables.
 
-> **Note:** Without a valid API key configuration matching your selected provider (Google Gemini, OpenAI or Azure), the audio generation step will fail.
+For **Google Gemini**:
+
+```sh
+export GOOGLE_API_KEY="your-api-key"
+```
+
+For **OpenAI**:
+
+```sh
+export OPENAI_API_KEY="your-api-key"
+```
+
+For **Azure Speech**:
+
+```sh
+export AZURE_TTS_API_KEY="your-api-key"
+export AZURE_TTS_REGION="japaneast"
+```
+
+Replace `japaneast` with the region of your Azure Speech resource. Note that Azure TTS uses an **Azure Speech API key**, not an Azure OpenAI API key.
+
+Alternatively, the credentials can be stored in the `multiai` settings file. `multiai` reads settings from `~/.multiai` and then from `./.multiai`, with project-level settings taking precedence.
+
+For example:
+
+```ini
+[api_key]
+openai = (Your OpenAI API key)
+google = (Your Gemini API key)
+azure_tts = (Your Azure Speech API key)
+
+[azure_tts]
+region = japaneast
+```
+
+You only need to configure the credentials for the TTS provider selected by `tts_provider` in the `slidemovie` configuration file.
+
+For more information, including the complete `multiai` configuration format, see the official [`multiai` documentation](https://sekika.github.io/multiai/).
+
+> **Note:** Without valid credentials for the selected provider (`google`, `openai`, or `azure`), audio generation will fail.
 
 > **VOICEVOX:** If you select the `voicevox` provider, no API key is required. Instead, the [VOICEVOX engine](https://voicevox.hiroshiba.jp/) must be running locally (default `http://127.0.0.1:50021`) before you build. See [Configuration](../configuration/) for `tts_voice` (speaker style ID) and `tts_voicevox_url`.

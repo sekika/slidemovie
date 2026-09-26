@@ -40,4 +40,4 @@ has_children: true
 
 ## ヘルプ
 
-* [slidemovie ヘルプ](https://gemini.google.com/gem/1wmhVX7e2_tbMIiMWnNYDGx8ych7WjJw1?usp=sharing): slidemovie のドキュメントとソースコードをもとに、使い方や仕様、動作について質問できます。
+* [slidemovie サポート](https://gemini.google.com/gem/1DP32huSqM6tnO5IzYkFrA5_5QBqWAckM?usp=sharing): slidemovie のドキュメントとソースコードをもとに、使い方や仕様、動作について質問できます。

@@ -71,12 +71,51 @@ slidemovie
 
 次に、**[設定ファイル](../configuration/)** のページを参考にこのファイルを編集し、`tts_provider`, `tts_model`, `tts_voice` の項目を変更して、使用する TTS モデルを設定してください。
 
-### 2. API キーの設定
+### 2. API認証情報の設定
 
-モデルの選択は設定ファイルで行いますが、**API キー** の設定は multiai の設定に従います。
+`slidemovie` は音声合成に `multiai-tts` を使用しています。API認証情報は [`multiai`](https://sekika.github.io/multiai/) と同じ方法で設定します。
 
-API キーの設定方法については、**[multiai の公式ドキュメント](https://sekika.github.io/multiai/index-ja.html)** の指示に従ってください。
+もっとも簡単なのは、環境変数に認証情報を設定する方法です。
 
-> **注意:** 選択したプロバイダー（Google Gemini または OpenAI）に対応する正しい API キーが設定されていない場合、音声生成のステップで失敗します。
+**Google Gemini** の場合：
 
-> **VOICEVOX について:** `voicevox` プロバイダーを選択した場合、API キーは不要です。代わりに、ビルド前に [VOICEVOX エンジン](https://voicevox.hiroshiba.jp/) をローカルで起動しておく必要があります（既定 `http://127.0.0.1:50021`）。`tts_voice`（話者 style ID）や `tts_voicevox_url` については [設定](../configuration/) を参照してください。
+```sh
+export GOOGLE_API_KEY="your-api-key"
+```
+
+**OpenAI** の場合：
+
+```sh
+export OPENAI_API_KEY="your-api-key"
+```
+
+**Azure Speech** の場合：
+
+```sh
+export AZURE_TTS_API_KEY="your-api-key"
+export AZURE_TTS_REGION="japaneast"
+```
+
+`japaneast` の部分は、使用している Azure Speech リソースのリージョンに置き換えてください。Azure TTS で使用するのは **Azure Speech の API キー**であり、Azure OpenAI の API キーではありません。
+
+環境変数の代わりに、`multiai` の設定ファイルに認証情報を保存することもできます。`multiai` は `~/.multiai`、続いて `./.multiai` の設定を読み込み、プロジェクト側の設定が優先されます。
+
+例えば、次のように設定します。
+
+```ini
+[api_key]
+openai = (OpenAI の API キー)
+google = (Gemini の API キー)
+azure_tts = (Azure Speech の API キー)
+
+[azure_tts]
+region = japaneast
+```
+
+`slidemovie` の設定ファイルで `tts_provider` に指定した TTS プロバイダについてのみ、認証情報を設定すれば利用できます。
+
+設定方法や `multiai` の設定ファイル全体の形式については、公式の [`multiai` ドキュメント](https://sekika.github.io/multiai/) を参照してください。
+
+> **注意:** 選択したプロバイダ（`google`、`openai`、`azure`）に対応する有効な認証情報が設定されていない場合、音声生成は失敗します。
+
+> **VOICEVOX:** `voicevox` プロバイダを選択した場合、APIキーは不要です。代わりに、ビルド前に [VOICEVOX エンジン](https://voicevox.hiroshiba.jp/) をローカルで起動しておく必要があります（デフォルトは `http://127.0.0.1:50021`）。`tts_voice`（話者・スタイルID）と `tts_voicevox_url` については [設定](../configuration/) を参照してください。
