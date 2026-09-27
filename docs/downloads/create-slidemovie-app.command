@@ -4,6 +4,7 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"
 working_dir="$PWD"
+launch_path="$PATH"
 slidemovie_bin="${SLIDEMOVIE_BIN:-$(command -v slidemovie || true)}"
 app_dir="$HOME/Applications/SlideMovie.app"
 contents_dir="$app_dir/Contents"
@@ -35,8 +36,10 @@ EOF
 
 {
   printf '%s\n' '#!/bin/bash'
+  printf 'export PATH=%q\n' "$launch_path"
   printf 'cd %q\n' "$working_dir"
-  printf 'exec %q -g --source-dir %q\n' "$slidemovie_bin" "$working_dir"
+  printf 'mkdir -p "$HOME/Library/Logs"\n'
+  printf 'exec %q -g --source-dir %q >> "$HOME/Library/Logs/SlideMovie.log" 2>&1\n' "$slidemovie_bin" "$working_dir"
 } > "$contents_dir/MacOS/SlideMovie"
 chmod +x "$contents_dir/MacOS/SlideMovie"
 

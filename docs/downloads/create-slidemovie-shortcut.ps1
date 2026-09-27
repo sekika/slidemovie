@@ -32,13 +32,32 @@ if (-not (Test-Path -LiteralPath $ShortcutDirectory)) {
 }
 
 $shortcutPath = Join-Path $ShortcutDirectory "SlideMovie.lnk"
+$launcherDirectory = Join-Path $env:LOCALAPPDATA "SlideMovie"
+$launcherPath = Join-Path $launcherDirectory "SlideMovie.vbs"
+New-Item -ItemType Directory -Path $launcherDirectory -Force | Out-Null
+
+function ConvertTo-VbsString([string]$Value) {
+    '"' + $Value.Replace('"', '""') + '"'
+}
+
+$command = '"' + $PythonPath + '" -m slidemovie.cli -g'
+$vbsLines = @(
+    'Set shell = CreateObject("WScript.Shell")',
+    'Set environment = shell.Environment("Process")',
+    ('environment.Item("PATH") = ' + (ConvertTo-VbsString $env:Path)),
+    ('shell.CurrentDirectory = ' + (ConvertTo-VbsString $HOME)),
+    ('shell.Run ' + (ConvertTo-VbsString $command) + ', 0, False')
+)
+Set-Content -LiteralPath $launcherPath -Value $vbsLines -Encoding Unicode
+
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($shortcutPath)
-$shortcut.TargetPath = $PythonPath
-$shortcut.Arguments = "-m slidemovie.cli -g"
+$shortcut.TargetPath = Join-Path $env:SystemRoot "System32\wscript.exe"
+$shortcut.Arguments = '"' + $launcherPath + '"'
 $shortcut.WorkingDirectory = $HOME
 $shortcut.IconLocation = "$IconPath,0"
 $shortcut.Description = "Open the SlideMovie GUI"
 $shortcut.Save()
 
 Write-Host "Created: $shortcutPath"
+Write-Host "Launcher: $launcherPath"

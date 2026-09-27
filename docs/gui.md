@@ -68,7 +68,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\create-slidemovie-shortcut.ps1
 ```
 
-The script creates `SlideMovie.lnk` on the desktop. It automatically finds `pythonw.exe` and opens the GUI without showing a console window. In the usual case, the command above is all you need; do not edit the script.
+The script creates `SlideMovie.lnk` on the desktop. It automatically finds `pythonw.exe` and opens the GUI without showing a console window. It also records the creation-time `PATH` in a small launcher, so external tools such as FFmpeg remain available when you start the shortcut from Explorer. In the usual case, the command above is all you need; do not edit the script.
 
 If the first attempt reports that Python cannot be found, paste and run these **two lines together** in PowerShell. The first line uses the Python Launcher to find `pythonw.exe`; the second passes that location to the shortcut-creation script. You do not need to edit either the shortcut or the script.
 
@@ -88,4 +88,4 @@ chmod +x create-slidemovie-app.command
 ./create-slidemovie-app.command
 ```
 
-The script creates and opens `~/Applications/SlideMovie.app`. It explicitly passes the folder where you ran the creation script as `--source-dir`, so that folder becomes the initial source folder. Run the script from the folder you want to use. Move the app to `/Applications` if you want it available to every user on the Mac. The script records the current `slidemovie` command path; run `which slidemovie` first if you need to check which Python environment will be used.
+The script creates and opens `~/Applications/SlideMovie.app`. It explicitly passes the folder where you ran the creation script as `--source-dir`, so that folder becomes the initial source folder. Run the script from the folder you want to use. It also records the creation-time `PATH` so that external tools installed through Homebrew remain available when you open the app directly from Finder. Move the app to `/Applications` if you want it available to every user on the Mac. If startup fails, check `~/Library/Logs/SlideMovie.log`. The script records the current `slidemovie` command path; run `which slidemovie` first if you need to check which Python environment will be used.

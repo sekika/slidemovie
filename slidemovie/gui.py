@@ -10,6 +10,7 @@ import logging
 import os
 from pathlib import Path
 import queue
+import re
 import subprocess
 import sys
 import threading
@@ -131,10 +132,25 @@ TEXT = {
 
 def detect_language():
     """Return the UI language inferred from the system locale."""
-    try:
-        language = locale.getlocale()[0] or locale.getdefaultlocale()[0]
-    except (ValueError, AttributeError):
-        language = None
+    language = None
+    if sys.platform == "darwin":
+        # Finder-launched apps may inherit an English shell locale even when
+        # Japanese is the macOS display language. Prefer the global setting.
+        try:
+            result = subprocess.run(
+                ["defaults", "read", "-g", "AppleLanguages"],
+                capture_output=True, text=True, check=False,
+            )
+            match = re.search(r'^\s*["\']?([a-z]{2})(?:[-_][a-z]+)?', result.stdout,
+                              re.IGNORECASE | re.MULTILINE)
+            language = match.group(1) if match else None
+        except OSError:
+            language = None
+    if not language:
+        try:
+            language = locale.getlocale()[0] or locale.getdefaultlocale()[0]
+        except (ValueError, AttributeError):
+            language = None
     return "ja" if language and language.lower().startswith("ja") else "en"
 
 
@@ -886,6 +902,10 @@ def main(initial_options=None):
     except tk.TclError as exc:
         print(f"Tkinter is unavailable: {exc}", file=sys.stderr)
         return 1
+    # On macOS, do not map the native window until its Tk widgets have been
+    # laid out. Mapping it while it is still empty can leave a white surface
+    # until the next pointer-driven redraw.
+    root.withdraw()
     events = queue.Queue()
     handler = QueueLogHandler(events)
     handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
@@ -894,6 +914,12 @@ def main(initial_options=None):
         app = SlideMovieApp(root, initial_options)
         # Reuse the handler's queue for the app after construction.
         app.events = events
+        # Map the complete UI only after geometry has settled.
+        root.update_idletasks()
+        root.deiconify()
+        root.lift()
+        root.focus_force()
+        root.update()
         root.mainloop()
     except SystemExit as exc:
         print(f"Could not initialize slidemovie: {exc}", file=sys.stderr)

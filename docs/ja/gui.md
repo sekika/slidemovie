@@ -69,7 +69,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\create-slidemovie-shortcut.ps1
 ```
 
-デスクトップに `SlideMovie.lnk` が作成されます。スクリプトは自動的に `pythonw.exe` を探し、コンソールを表示せずに GUI を起動します。通常は上記のコマンドだけで完了し、スクリプトを書き換える必要はありません。
+デスクトップに `SlideMovie.lnk` が作成されます。スクリプトは自動的に `pythonw.exe` を探し、コンソールを表示せずに GUI を起動します。また、作成時の `PATH` を専用ランチャーへ記録するため、Explorer から起動しても FFmpeg などの外部ツールを見つけられます。通常は上記のコマンドだけで完了し、スクリプトを書き換える必要はありません。
 
 最初の実行で Python を見つけられないというエラーが出た場合は、次の **2 行を続けて** PowerShell へ貼り付けて実行してください。1 行目で Python Launcher から `pythonw.exe` の場所を取得し、2 行目でその場所を指定してショートカットを作成します。ショートカットやスクリプトのファイルを手で書き換える必要はありません。
 
@@ -89,4 +89,4 @@ chmod +x create-slidemovie-app.command
 ./create-slidemovie-app.command
 ```
 
-`~/Applications/SlideMovie.app` が作成され、開かれます。アプリは、この作成スクリプトを実行したフォルダーを `--source-dir` で明示指定し、ソースフォルダーの初期値として開きます。使用したいフォルダーでスクリプトを実行してください。Mac のすべての利用者から開けるようにするには `/Applications` へ移動します。スクリプトは実行時の `slidemovie` コマンドのパスを記録するため、使用する Python 環境を確認したい場合は事前に `which slidemovie` を実行してください。
+`~/Applications/SlideMovie.app` が作成され、開かれます。アプリは、この作成スクリプトを実行したフォルダーを `--source-dir` で明示指定し、ソースフォルダーの初期値として開きます。使用したいフォルダーでスクリプトを実行してください。Finder から直接開く場合にも Homebrew などの外部ツールを見つけられるよう、作成時の `PATH` をアプリへ記録します。Mac のすべての利用者から開けるようにするには `/Applications` へ移動します。起動に失敗した場合は `~/Library/Logs/SlideMovie.log` を確認してください。スクリプトは実行時の `slidemovie` コマンドのパスを記録するため、使用する Python 環境を確認したい場合は事前に `which slidemovie` を実行してください。
