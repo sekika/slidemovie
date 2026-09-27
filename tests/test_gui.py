@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 from slidemovie.gui import (apply_stored_tts_config, display_path_value, display_setting_value, open_folder,
                             build_settings_from_status, load_stored_tts_config, official_website_url, options_from_args,
                             display_prompt_separator, display_source_path, parse_prompt_separator, parse_screen_size, project_folder_paths, run_build, SlideMovieApp,
-                            load_local_config, local_config_path, save_local_config, summarize_status, TEXT)
+                            load_local_config, local_config_path, run_preflight_message, save_local_config, summarize_status, TEXT)
 
 
 def _args(**changes):
@@ -41,6 +41,13 @@ def test_display_path_value_uses_config_unless_cli_path_is_explicit():
     assert display_path_value(initial, settings, {"output_root"}, "output_root") == ""
 
 
+def test_configured_filename_is_shown_when_only_cli_paths_are_prioritized():
+    initial = {"output_filename": ""}
+    settings = {"output_filename": "configured-movie"}
+
+    assert display_path_value(initial, settings, set(), "output_filename") == "configured-movie"
+
+
 def test_display_source_path_expands_the_current_or_relative_directory():
     assert display_source_path(".") == os.getcwd()
     assert display_source_path("project") == os.path.join(os.getcwd(), "project")
@@ -49,6 +56,26 @@ def test_display_source_path_expands_the_current_or_relative_directory():
 def test_local_config_path_is_next_to_the_subproject_markdown_input():
     assert local_config_path("/work", "") == "/work/config.json"
     assert local_config_path("/work", "chapter-1") == "/work/chapter-1/config.json"
+
+
+def test_run_preflight_checks_project_inputs_in_display_order(tmp_path):
+    missing = str(tmp_path / "missing")
+    assert run_preflight_message("ja", missing, "demo", False, "", False, True, False) == "ソースフォルダが存在しません。"
+
+    source = tmp_path / "source"
+    source.mkdir()
+    assert run_preflight_message("ja", str(source), "", False, "", False, True, False) == "プロジェクト名を入れてください。"
+    assert run_preflight_message("ja", str(source), "demo", True, "", False, True, False) == "サブプロジェクト名を入れてください。"
+    assert run_preflight_message("ja", str(source), "demo", True, "child", False, True, False) == f"入力ファイルのフォルダー ({source / 'child'}) が存在しません。"
+    assert run_preflight_message("ja", str(source), "demo", False, "", False, True, False) == "マークダウンファイル (demo.md) が存在しません。"
+
+    (source / "demo.md").write_text("# Demo", encoding="utf-8")
+    assert run_preflight_message("ja", str(source), "demo", False, "", False, False, False) == "実行内容を指定してください。"
+    assert run_preflight_message("ja", str(source), "demo", False, "", False, True, False) == "まずは PPTX を生成してください。"
+    assert run_preflight_message("ja", str(source), "demo", False, "", False, True, True) == "PDFファイル (demo.pdf) が存在しません。"
+
+    (source / "demo.pdf").write_text("pdf", encoding="utf-8")
+    assert run_preflight_message("ja", str(source), "demo", False, "", False, True, True) == ""
 
 
 def test_save_local_config_preserves_unrelated_keys(tmp_path):

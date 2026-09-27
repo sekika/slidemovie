@@ -94,6 +94,9 @@ TEXT = {
         "yes": "Use", "no": "Do not use",
         "missing": "status.json has not been created.", "no_project": "Enter a project name to view status.",
         "invalid": "Please correct the input.", "action_required": "Please select an action.", "folder_not_found": "Folder does not exist.", "done": "Build completed.",
+        "source_folder_missing": "Source folder does not exist.", "project_name_required": "Enter a project name.",
+        "subproject_name_required": "Enter a subproject name.", "input_folder_missing": "Input-file folder ({path}) does not exist.",
+        "markdown_missing": "Markdown file ({filename}) does not exist.", "pptx_required": "Build the PPTX first.", "pdf_missing": "PDF file ({filename}) does not exist.",
         "failed_message": "Build failed. See the log for details.",
         "confirm": "TTS settings differ from status.json. Choose which settings to use.",
         "use_status": "Use status.json settings", "overwrite": "Overwrite with current settings",
@@ -121,7 +124,10 @@ TEXT = {
         "idle": "待機中", "running": "実行中", "success": "成功", "failed": "失敗",
         "yes": "使用する", "no": "使用しない",
         "missing": "status.json はまだ作成されていません。", "no_project": "状態を表示するにはプロジェクト名を入力してください。",
-        "invalid": "入力内容を確認してください。", "action_required": "実行内容を選んでください。", "folder_not_found": "フォルダーが存在しません。", "done": "ビルドが完了しました。",
+        "invalid": "入力内容を確認してください。", "action_required": "実行内容を指定してください。", "folder_not_found": "フォルダーが存在しません。", "done": "ビルドが完了しました。",
+        "source_folder_missing": "ソースフォルダが存在しません。", "project_name_required": "プロジェクト名を入れてください。",
+        "subproject_name_required": "サブプロジェクト名を入れてください。", "input_folder_missing": "入力ファイルのフォルダー ({path}) が存在しません。",
+        "markdown_missing": "マークダウンファイル ({filename}) が存在しません。", "pptx_required": "まずは PPTX を生成してください。", "pdf_missing": "PDFファイル ({filename}) が存在しません。",
         "failed_message": "ビルドに失敗しました。詳細はログを確認してください。",
         "confirm": "TTS 設定が status.json と異なります。使用する設定を選択してください。",
         "use_status": "status.json の設定を使う", "overwrite": "現在の設定で上書きする",
@@ -209,6 +215,35 @@ def local_config_path(source_dir, subproject_name=""):
     if subproject_name:
         input_dir = os.path.join(input_dir, subproject_name)
     return os.path.join(input_dir, "config.json")
+
+
+def run_preflight_message(language, source_dir, project_name, use_subproject,
+                          subproject_name, build_pptx, build_video, use_pdf):
+    """Return the first unmet prerequisite for enabling the Run button."""
+    text = TEXT[language]
+    source_dir = display_source_path(source_dir)
+    if not os.path.isdir(source_dir):
+        return text["source_folder_missing"]
+    if not project_name.strip():
+        return text["project_name_required"]
+    if use_subproject and not subproject_name.strip():
+        return text["subproject_name_required"]
+
+    input_dir = (os.path.join(source_dir, subproject_name.strip())
+                 if use_subproject else source_dir)
+    if not os.path.isdir(input_dir):
+        return text["input_folder_missing"].format(path=input_dir)
+    filename = subproject_name.strip() if use_subproject else project_name.strip()
+    if not os.path.isfile(os.path.join(input_dir, f"{filename}.md")):
+        return text["markdown_missing"].format(filename=f"{filename}.md")
+    if not (build_pptx or build_video):
+        return text["action_required"]
+    if (not os.path.isfile(os.path.join(input_dir, f"{filename}.pptx"))
+            and not build_pptx and not use_pdf):
+        return text["pptx_required"]
+    if use_pdf and build_video and not os.path.isfile(os.path.join(input_dir, f"{filename}.pdf")):
+        return text["pdf_missing"].format(filename=f"{filename}.pdf")
+    return ""
 
 
 def save_local_config(path, values):
@@ -424,6 +459,9 @@ class SlideMovieApp:
         self._updating = False
         self.overrides = set(self.initial_options.get("overrides", set()))
         self.path_overrides = {name for name in ("output_root", "output_filename") if name in self.overrides}
+        # Keep CLI path choices separate from paths loaded from config.json:
+        # only an explicit CLI argument should hide a configured initial value.
+        self.cli_path_overrides = set(self.path_overrides)
         self._load_settings()
         self._make_variables()
         self._build()
@@ -472,8 +510,8 @@ class SlideMovieApp:
         self.project_var = tk.StringVar(value=initial.get("project_name", ""))
         self.sub_var = tk.StringVar(value=initial.get("subproject_name", ""))
         self.sub_mode_var = tk.BooleanVar(value=bool(initial.get("subproject_name")))
-        output_root = display_path_value(initial, self.settings, self.path_overrides, "output_root")
-        output_filename = display_path_value(initial, self.settings, self.path_overrides, "output_filename")
+        output_root = display_path_value(initial, self.settings, self.cli_path_overrides, "output_root")
+        output_filename = display_path_value(initial, self.settings, self.cli_path_overrides, "output_filename")
         self.output_var = tk.StringVar(value=output_root)
         self.filename_var = tk.StringVar(value=output_filename)
         self.pptx_var = tk.BooleanVar(value=bool(initial.get("build_pptx")))
@@ -483,6 +521,7 @@ class SlideMovieApp:
         self.use_prompt_var = tk.StringVar()
         self.setting_vars = {name: tk.StringVar() for name in SETTING_NAMES if name not in ("prompt", "prompt_separator")}
         self.status_var = tk.StringVar()
+        self.run_check_var = tk.StringVar()
 
     def _build(self):
         ttk, tk = self.ttk, self.tk
@@ -539,15 +578,18 @@ class SlideMovieApp:
         self.status_label = ttk.Label(self.status_frame, textvariable=self.status_var, justify="left", wraplength=max(250, width - 100)); self.status_label.grid(row=0, column=0, sticky="w", padx=4, pady=4)
         self.refresh_button = ttk.Button(self.status_frame, command=self.refresh_status); self.refresh_button.grid(row=0, column=1, padx=4, pady=4)
         self.action_frame = ttk.LabelFrame(self.project_tab); self.action_frame.grid(row=2, column=0, sticky="ew", pady=(8, 0))
-        self.pptx_check = ttk.Checkbutton(self.action_frame, variable=self.pptx_var); self.pptx_check.grid(row=0, column=0, padx=4)
-        self.video_check = ttk.Checkbutton(self.action_frame, variable=self.video_var); self.video_check.grid(row=0, column=1, padx=4)
+        self.pptx_check = ttk.Checkbutton(self.action_frame, variable=self.pptx_var, command=self._update_run_state); self.pptx_check.grid(row=0, column=0, padx=4)
+        self.video_check = ttk.Checkbutton(self.action_frame, variable=self.video_var, command=self._update_run_state); self.video_check.grid(row=0, column=1, padx=4)
         self.interactive_widgets.extend((self.pptx_check, self.video_check))
         self.source_frame = ttk.LabelFrame(self.project_tab); self.source_frame.grid(row=3, column=0, sticky="ew", pady=(8, 0))
-        self.pdf_check = ttk.Checkbutton(self.source_frame, variable=self.pdf_var)
+        self.source_frame.columnconfigure(1, weight=1)
+        self.pdf_check = ttk.Checkbutton(self.source_frame, variable=self.pdf_var, command=self._update_run_state)
         self.pdf_check.grid(row=0, column=0, padx=4, pady=2, sticky="w")
         self.interactive_widgets.append(self.pdf_check)
-        self.run_button = ttk.Button(self.source_frame, command=self.start)
+        self.run_button = ttk.Button(self.source_frame, command=self.start, state="disabled")
         self.run_button.grid(row=1, column=0, padx=4, pady=(4, 2), sticky="w")
+        self.run_check_label = ttk.Label(self.source_frame, textvariable=self.run_check_var, wraplength=max(250, width - 180))
+        self.run_check_label.grid(row=1, column=1, padx=4, pady=(4, 2), sticky="w")
         self.settings_canvas = tk.Canvas(self.settings_tab, highlightthickness=0)
         settings_scroll = ttk.Scrollbar(self.settings_tab, orient="vertical", command=self.settings_canvas.yview)
         self.settings_canvas.configure(yscrollcommand=settings_scroll.set)
@@ -609,10 +651,11 @@ class SlideMovieApp:
         self.prompt_text.bind("<<Modified>>", lambda _event: self._text_changed("prompt", self.prompt_text))
         self.separator_text.bind("<<Modified>>", lambda _event: self._text_changed("prompt_separator", self.separator_text))
         for variable in (self.source_var, self.project_var, self.sub_var):
-            variable.trace_add("write", lambda *_: self.refresh_status())
+            variable.trace_add("write", lambda *_: self._input_changed())
         self.output_var.trace_add("write", lambda *_: self._mark_path_override("output_root"))
         self.filename_var.trace_add("write", lambda *_: self._mark_path_override("output_filename"))
         self._set_language()
+        self._update_run_state()
 
     def _row(self, parent, row, key, variable, browse=None):
         label = self.ttk.Label(parent); label.grid(row=row, column=0, sticky="w", padx=4, pady=2); self.labels[key] = label
@@ -653,6 +696,8 @@ class SlideMovieApp:
         self.language_combo.set("日本語" if self.language == "ja" else "English")
         self._updating = False
         self._set_state("running" if self.running else "idle")
+        if not self.running:
+            self._update_run_state()
 
     def _change_language(self, _event=None):
         self.language = "ja" if self.language_combo.get() == "日本語" else "en"
@@ -704,7 +749,26 @@ class SlideMovieApp:
 
     def _sub_changed(self):
         self._toggle_sub()
+        self._input_changed()
+
+    def _input_changed(self):
         self.refresh_status()
+        self._update_run_state()
+
+    def _run_preflight_message(self):
+        return run_preflight_message(
+            self.language, self.source_var.get(), self.project_var.get(),
+            self.sub_mode_var.get(), self.sub_var.get(), self.pptx_var.get(),
+            self.video_var.get(), self.pdf_var.get(),
+        )
+
+    def _update_run_state(self):
+        """Show the first unmet project prerequisite and gate the Run button."""
+        if self.running:
+            return
+        message = self._run_preflight_message()
+        self.run_check_var.set(message)
+        self.run_button.configure(state="disabled" if message else "normal")
 
     def _browse(self, variable):
         from tkinter import filedialog
@@ -866,8 +930,9 @@ class SlideMovieApp:
 
     def start(self):
         from tkinter import messagebox
-        if not (self.pptx_var.get() or self.video_var.get()):
-            messagebox.showerror(TEXT[self.language]["action_required"], TEXT[self.language]["action_required"], parent=self.root); return
+        if self._run_preflight_message():
+            self._update_run_state()
+            return
         if not self._validate():
             messagebox.showerror(TEXT[self.language]["invalid"], TEXT[self.language]["invalid"], parent=self.root); return
         self.running = True; self._set_controls("disabled"); self._set_state("running")
@@ -1005,6 +1070,7 @@ class SlideMovieApp:
             self.use_prompt_combo.configure(state="readonly")
             self.language_combo.configure(state="readonly")
             self._toggle_sub()
+            self._update_run_state()
 
     def close(self):
         from tkinter import messagebox
