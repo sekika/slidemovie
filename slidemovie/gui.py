@@ -130,6 +130,13 @@ def options_from_args(args):
     return values
 
 
+def display_path_value(initial_options, settings, path_overrides, name):
+    """Choose a displayed path, preferring CLI input only when it was explicit."""
+    if name in path_overrides:
+        return initial_options.get(name, "")
+    return settings.get(name) or ""
+
+
 def summarize_status(path):
     """Return a privacy-conscious, tolerant status.json summary."""
     if not os.path.isfile(path):
@@ -267,8 +274,10 @@ class SlideMovieApp:
         self.project_var = tk.StringVar(value=initial.get("project_name", ""))
         self.sub_var = tk.StringVar(value=initial.get("subproject_name", ""))
         self.sub_mode_var = tk.BooleanVar(value=bool(initial.get("subproject_name")))
-        self.output_var = tk.StringVar(value=initial.get("output_root", self.settings["output_root"] or ""))
-        self.filename_var = tk.StringVar(value=initial.get("output_filename", self.settings["output_filename"] or ""))
+        output_root = display_path_value(initial, self.settings, self.path_overrides, "output_root")
+        output_filename = display_path_value(initial, self.settings, self.path_overrides, "output_filename")
+        self.output_var = tk.StringVar(value=output_root)
+        self.filename_var = tk.StringVar(value=output_filename)
         self.pptx_var = tk.BooleanVar(value=bool(initial.get("build_pptx")))
         self.video_var = tk.BooleanVar(value=bool(initial.get("build_video")))
         self.pdf_var = tk.BooleanVar(value=bool(initial.get("use_pdf")))

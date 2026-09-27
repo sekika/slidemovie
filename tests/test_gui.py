@@ -2,7 +2,8 @@ import json
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from slidemovie.gui import apply_stored_tts_config, options_from_args, run_build, summarize_status
+from slidemovie.gui import (apply_stored_tts_config, display_path_value, options_from_args,
+                            run_build, summarize_status)
 
 
 def _args(**changes):
@@ -27,6 +28,14 @@ def test_options_from_args_preserves_only_explicit_overrides():
     assert options["tts_provider"] == "openai"
     assert {"tts_provider", "prompt", "tts_use_prompt"} <= options["overrides"]
     assert "tts_model" not in options["overrides"]
+
+
+def test_display_path_value_uses_config_unless_cli_path_is_explicit():
+    initial = {"output_root": "", "output_filename": ""}
+    settings = {"output_root": "/Volumes/back/slidemovie", "output_filename": "movie"}
+
+    assert display_path_value(initial, settings, set(), "output_root") == "/Volumes/back/slidemovie"
+    assert display_path_value(initial, settings, {"output_root"}, "output_root") == ""
 
 
 def test_summarize_status_is_tolerant_and_does_not_return_prompt(tmp_path):
