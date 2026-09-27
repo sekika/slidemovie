@@ -12,6 +12,13 @@ build/
 develop-eggs/
 dist/
 downloads/
+# Downloadable files published with the documentation.
+!docs/downloads/
+!docs/downloads/*.command
+!docs/downloads/*.ico
+!docs/downloads/*.icns
+!docs/downloads/*.ps1
+!docs/downloads/*.svg
 eggs/
 .eggs/
 lib/

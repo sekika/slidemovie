@@ -43,3 +43,6 @@ slidemovie = "slidemovie.cli:main"
 
 [tool.setuptools]
 packages = ["slidemovie"]
+
+[tool.setuptools.package-data]
+slidemovie = ["assets/*.png"]

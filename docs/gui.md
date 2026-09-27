@@ -49,3 +49,43 @@ When the current TTS settings differ from `status.json`, choose one of the follo
 - **Cancel**: stops before building.
 
 The interface is available in English and Japanese. The **Website** button opens the official site for the selected language.
+
+## Create a GUI shortcut
+
+If you use the GUI regularly, you can create a shortcut to open it from the desktop or Applications folder. Download the script and icon for your operating system below.
+
+Download the script and its matching icon into the same folder:
+
+- Windows: [shortcut script]({{ '/downloads/create-slidemovie-shortcut.ps1' | relative_url }}) and [icon (`.ico`)]({{ '/downloads/slidemovie.ico' | relative_url }})
+- macOS: [app-creation script]({{ '/downloads/create-slidemovie-app.command' | relative_url }}) and [icon (`.icns`)]({{ '/downloads/slidemovie.icns' | relative_url }})
+
+### Windows
+
+Open PowerShell in the downloaded folder and run:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\create-slidemovie-shortcut.ps1
+```
+
+The script creates `SlideMovie.lnk` on the desktop. It automatically finds `pythonw.exe` and opens the GUI without showing a console window. In the usual case, the command above is all you need; do not edit the script.
+
+If the first attempt reports that Python cannot be found, paste and run these **two lines together** in PowerShell. The first line uses the Python Launcher to find `pythonw.exe`; the second passes that location to the shortcut-creation script. You do not need to edit either the shortcut or the script.
+
+```powershell
+$pythonw = & py -3 -c "import sys; print(sys.executable.replace('python.exe', 'pythonw.exe'))"
+.\create-slidemovie-shortcut.ps1 -PythonPath $pythonw
+```
+
+The discovered `pythonw.exe` path becomes the launch target of the created `SlideMovie.lnk`.
+
+### macOS
+
+Open Terminal in the downloaded folder and run:
+
+```bash
+chmod +x create-slidemovie-app.command
+./create-slidemovie-app.command
+```
+
+The script creates and opens `~/Applications/SlideMovie.app`. Move it to `/Applications` if you want it available to every user on the Mac. The script records the current `slidemovie` command path; run `which slidemovie` first if you need to check which Python environment will be used.

@@ -50,3 +50,43 @@ slidemovie -g
 - **キャンセル**: ビルドを開始しません。
 
 画面表示は日本語と英語を切り替えられます。**公式サイト** は選択中の言語に対応する公式サイトを開きます。
+
+## GUI のショートカットを作る
+
+よく使う場合は、デスクトップやアプリケーションフォルダーから GUI を開けるショートカットを作成できます。以下から、お使いの OS 用のスクリプトとアイコンをダウンロードしてください。
+
+スクリプトと対応するアイコンは、同じフォルダーへダウンロードしてください。
+
+- Windows: [ショートカット作成スクリプト]({{ '/downloads/create-slidemovie-shortcut.ps1' | relative_url }}) と [アイコン（`.ico`）]({{ '/downloads/slidemovie.ico' | relative_url }})
+- macOS: [アプリ作成スクリプト]({{ '/downloads/create-slidemovie-app.command' | relative_url }}) と [アイコン（`.icns`）]({{ '/downloads/slidemovie.icns' | relative_url }})
+
+### Windows
+
+ダウンロードしたフォルダーで PowerShell を開き、次を実行します。
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\create-slidemovie-shortcut.ps1
+```
+
+デスクトップに `SlideMovie.lnk` が作成されます。スクリプトは自動的に `pythonw.exe` を探し、コンソールを表示せずに GUI を起動します。通常は上記のコマンドだけで完了し、スクリプトを書き換える必要はありません。
+
+最初の実行で Python を見つけられないというエラーが出た場合は、次の **2 行を続けて** PowerShell へ貼り付けて実行してください。1 行目で Python Launcher から `pythonw.exe` の場所を取得し、2 行目でその場所を指定してショートカットを作成します。ショートカットやスクリプトのファイルを手で書き換える必要はありません。
+
+```powershell
+$pythonw = & py -3 -c "import sys; print(sys.executable.replace('python.exe', 'pythonw.exe'))"
+.\create-slidemovie-shortcut.ps1 -PythonPath $pythonw
+```
+
+このコマンドでは、取得した `pythonw.exe` のパスが、作成される `SlideMovie.lnk` の起動先に設定されます。
+
+### macOS
+
+ダウンロードしたフォルダーでターミナルを開き、次を実行します。
+
+```bash
+chmod +x create-slidemovie-app.command
+./create-slidemovie-app.command
+```
+
+`~/Applications/SlideMovie.app` が作成され、開かれます。Mac のすべての利用者から開けるようにするには `/Applications` へ移動します。スクリプトは実行時の `slidemovie` コマンドのパスを記録するため、使用する Python 環境を確認したい場合は事前に `which slidemovie` を実行してください。

@@ -8,6 +8,7 @@ import json
 import locale
 import logging
 import os
+from pathlib import Path
 import queue
 import subprocess
 import sys
@@ -66,6 +67,8 @@ OFFICIAL_WEBSITES = {
     "en": "https://sekika.github.io/slidemovie/",
     "ja": "https://sekika.github.io/slidemovie/ja/",
 }
+
+WINDOW_ICON_PATH = Path(__file__).with_name("assets") / "slidemovie.png"
 
 
 TEXT = {
@@ -399,6 +402,13 @@ class SlideMovieApp:
     def _build(self):
         ttk, tk = self.ttk, self.tk
         self.root.title(TEXT[self.language]["title"])
+        # Keep a reference: Tk releases images that are no longer referenced.
+        try:
+            self.window_icon = tk.PhotoImage(file=str(WINDOW_ICON_PATH))
+            self.root.iconphoto(True, self.window_icon)
+        except tk.TclError:
+            # The GUI remains usable if a platform cannot load the icon.
+            self.window_icon = None
         # Fit the initial window into small displays.  Content that does not
         # fit is separated into tabs; the settings tab also scrolls.
         screen_width, screen_height = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
