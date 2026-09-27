@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 from slidemovie.gui import (apply_stored_tts_config, display_path_value, display_setting_value, open_folder,
                             build_settings_from_status, load_stored_tts_config, official_website_url, options_from_args,
                             display_prompt_separator, display_source_path, parse_prompt_separator, parse_screen_size, project_folder_paths, run_build, SlideMovieApp,
-                            load_local_config, local_config_path, run_preflight_message, save_local_config, summarize_status, TEXT)
+                            load_local_config, local_config_path, pptx_display_status, run_preflight_message, save_local_config, summarize_status, TEXT)
 
 
 def _args(**changes):
@@ -56,6 +56,15 @@ def test_display_source_path_expands_the_current_or_relative_directory():
 def test_local_config_path_is_next_to_the_subproject_markdown_input():
     assert local_config_path("/work", "") == "/work/config.json"
     assert local_config_path("/work", "chapter-1") == "/work/chapter-1/config.json"
+
+
+def test_pptx_display_status_distinguishes_generated_present_and_missing(tmp_path):
+    pptx = tmp_path / "demo.pptx"
+    assert pptx_display_status("ja", {"status": "generated"}, str(pptx)) == "未生成"
+
+    pptx.write_text("pptx", encoding="utf-8")
+    assert pptx_display_status("ja", {"status": "missing"}, str(pptx)) == "ファイル有"
+    assert pptx_display_status("ja", {"status": "generated"}, str(pptx)) == "生成済み"
 
 
 def test_run_preflight_checks_project_inputs_in_display_order(tmp_path):
@@ -278,11 +287,12 @@ def test_summarize_status_is_tolerant_and_does_not_return_prompt(tmp_path):
     path = tmp_path / "status.json"
     path.write_text(json.dumps({
         "project_id": "demo", "last_checked": "2026-09-27",
-        "pptx_task": {"status": "done"}, "images_task": {"status": "missing"},
+        "pptx_task": {"status": "done"}, "images_task": {"status": "generated", "source_file": "demo.pptx"},
+        "final_movie": {"status": "generated", "file_name": "demo.mp4", "duration_min": 3.5},
         "tts_config": {"provider": "openai", "model": "tts", "voice": "alloy", "prompt": "secret"},
         "slides": {
-            "one": {"status": "done", "audio": {"status": "generated"}},
-            "two": {"status": "failed", "audio": {"status": "missing"}},
+            "one": {"video": {"status": "generated"}, "audio": {"status": "generated"}},
+            "two": {"video": {"status": "failed"}, "audio": {"status": "missing"}},
             "three": {"audio": {"status": "error"}},
         },
     }), encoding="utf-8")
@@ -291,6 +301,9 @@ def test_summarize_status_is_tolerant_and_does_not_return_prompt(tmp_path):
     assert summary["slides_total"] == 3
     assert summary["slides_done"] == 1
     assert summary["slides_failed"] == 1
+    assert summary["pptx"]["status"] == "done"
+    assert summary["final_video"]["duration_min"] == 3.5
+    assert summary["final_video"]["file_name"] == "demo.mp4"
     assert summary["audio_total"] == 3
     assert summary["audio_generated"] == 1
     assert summary["audio_failed"] == 1

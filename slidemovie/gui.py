@@ -89,13 +89,14 @@ TEXT = {
         "separator": "Prompt separator", "chunk": "Chunk size", "split": "Split characters",
         "overflow": "On no split", "screen_size": "Screen size", "image_pad_color": "Image padding color", "video_fps": "Video FPS", "silence_sec": "Silence (seconds)", "restore": "Restore settings", "status": "Project status",
         "save_local": "Save to local config", "saved_local": "Saved local config: ", "save_failed": "Could not save local config: ",
-        "refresh": "Refresh status", "run": "Run", "clear": "Clear log", "website": "Website", "exit": "Exit",
+        "run": "Run", "clear": "Clear log", "website": "Website", "exit": "Exit",
         "idle": "Idle", "running": "Running", "success": "Succeeded", "failed": "Failed",
         "yes": "Use", "no": "Do not use",
         "missing": "status.json has not been created.", "no_project": "Enter a project name to view status.",
         "invalid": "Please correct the input.", "action_required": "Please select an action.", "folder_not_found": "Folder does not exist.", "done": "Build completed.",
         "source_folder_missing": "Source folder does not exist.", "project_name_required": "Enter a project name.",
         "subproject_name_required": "Enter a subproject name.", "input_folder_missing": "Input-file folder ({path}) does not exist.",
+        "subfolder_required": "Choose a folder directly inside the source folder.",
         "markdown_missing": "Markdown file ({filename}) does not exist.", "pptx_required": "Build the PPTX first.", "pdf_missing": "PDF file ({filename}) does not exist.",
         "failed_message": "Build failed. See the log for details.",
         "confirm": "TTS settings differ from status.json. Choose which settings to use.",
@@ -103,9 +104,11 @@ TEXT = {
         "cancel": "Cancel",
         "close_running": "Wait for the current build to finish before closing.",
         "status_file": "State file", "project_id": "Project ID", "checked": "Last checked",
-        "pptx_status": "PPTX", "images_status": "Images", "slides": "Slides",
-        "tts": "Recorded TTS", "audio": "Audio files", "generated": "generated",
+        "pptx_status": "PPTX", "images_status": "Images", "video_files": "Video files",
+        "tts": "Recorded TTS", "audio": "Audio files", "final_video": "Final video", "duration": "duration", "generated": "generated",
         "not_generated": "not generated", "unreadable": "Could not read status.json: ",
+        "status_missing": "missing", "status_file_present": "file present", "status_generated": "generated", "status_failed": "failed", "status_error": "error",
+        "completed_count": "done", "failed_count": "failed",
     },
     "ja": {
         "title": "slidemovie 0.8.0", "project": "プロジェクト", "settings_tab": "設定", "log_tab": "ログ", "source": "ソースフォルダー",
@@ -120,13 +123,14 @@ TEXT = {
         "separator": "プロンプト区切り", "chunk": "チャンクサイズ", "split": "分割候補文字",
         "overflow": "分割不可時", "screen_size": "画面サイズ", "image_pad_color": "画像余白色", "video_fps": "動画 FPS", "silence_sec": "無音時間（秒）", "restore": "設定から戻す", "status": "プロジェクトの状態",
         "save_local": "ローカル設定に保存", "saved_local": "ローカル設定を保存しました: ", "save_failed": "ローカル設定を保存できません: ",
-        "refresh": "状態を更新", "run": "実行", "clear": "ログを消去", "website": "公式サイト", "exit": "終了",
+        "run": "実行", "clear": "ログを消去", "website": "公式サイト", "exit": "終了",
         "idle": "待機中", "running": "実行中", "success": "成功", "failed": "失敗",
         "yes": "使用する", "no": "使用しない",
         "missing": "status.json はまだ作成されていません。", "no_project": "状態を表示するにはプロジェクト名を入力してください。",
         "invalid": "入力内容を確認してください。", "action_required": "実行内容を指定してください。", "folder_not_found": "フォルダーが存在しません。", "done": "ビルドが完了しました。",
         "source_folder_missing": "ソースフォルダが存在しません。", "project_name_required": "プロジェクト名を入れてください。",
         "subproject_name_required": "サブプロジェクト名を入れてください。", "input_folder_missing": "入力ファイルのフォルダー ({path}) が存在しません。",
+        "subfolder_required": "ソースフォルダー直下のフォルダーを選択してください。",
         "markdown_missing": "マークダウンファイル ({filename}) が存在しません。", "pptx_required": "まずは PPTX を生成してください。", "pdf_missing": "PDFファイル ({filename}) が存在しません。",
         "failed_message": "ビルドに失敗しました。詳細はログを確認してください。",
         "confirm": "TTS 設定が status.json と異なります。使用する設定を選択してください。",
@@ -134,9 +138,11 @@ TEXT = {
         "cancel": "キャンセル",
         "close_running": "実行中の処理が完了してから終了してください。",
         "status_file": "状態ファイル", "project_id": "プロジェクト ID", "checked": "最終確認日時",
-        "pptx_status": "PPTX", "images_status": "画像", "slides": "スライド",
-        "tts": "記録済み TTS", "audio": "音声ファイル", "generated": "生成済み",
+        "pptx_status": "PPTX", "images_status": "画像", "video_files": "動画ファイル",
+        "tts": "記録済み TTS", "audio": "音声ファイル", "final_video": "最終動画", "duration": "長さ", "generated": "生成済み",
         "not_generated": "未生成", "unreadable": "status.json を読めません: ",
+        "status_missing": "未生成", "status_file_present": "ファイル有", "status_generated": "生成済み", "status_failed": "失敗", "status_error": "エラー",
+        "completed_count": "完了", "failed_count": "失敗",
     },
 }
 
@@ -246,6 +252,16 @@ def run_preflight_message(language, source_dir, project_name, use_subproject,
     return ""
 
 
+def pptx_display_status(language, pptx_task, pptx_path):
+    """Distinguish a generated PPTX from an externally present file."""
+    text = TEXT[language]
+    if not os.path.isfile(pptx_path):
+        return text["status_missing"]
+    if isinstance(pptx_task, dict) and pptx_task.get("status") == "generated":
+        return text["status_generated"]
+    return text["status_file_present"]
+
+
 def save_local_config(path, values):
     """Merge GUI settings into a source-folder config.json without losing other keys."""
     existing = {}
@@ -336,8 +352,14 @@ def summarize_status(path):
     if not isinstance(state, dict):
         return {"exists": True, "error": "root value is not an object"}
     slides = state.get("slides") if isinstance(state.get("slides"), dict) else {}
-    statuses = [item.get("status") for item in slides.values() if isinstance(item, dict)]
-    done = sum(status in ("done", "completed", "success") for status in statuses)
+    # A slide's completion is stored in its nested video object.  Older state
+    # files may instead have a top-level status, so retain that as a fallback.
+    statuses = [
+        (item["video"].get("status") if isinstance(item.get("video"), dict)
+         else item.get("status"))
+        for item in slides.values() if isinstance(item, dict)
+    ]
+    done = sum(status in ("generated", "done", "completed", "success") for status in statuses)
     failed = sum(status in ("failed", "error") for status in statuses)
     audio_statuses = [
         item["audio"].get("status") for item in slides.values()
@@ -352,6 +374,7 @@ def summarize_status(path):
     return {
         "exists": True, "project_id": state.get("project_id"), "last_checked": state.get("last_checked"),
         "pptx": task("pptx_task"), "images": task("images_task"),
+        "final_video": task("final_movie"),
         "slides_total": len(slides), "slides_done": done, "slides_failed": failed,
         "audio_total": len(audio_statuses), "audio_generated": audio_generated,
         "audio_failed": audio_failed,
@@ -469,6 +492,7 @@ class SlideMovieApp:
         self.refresh_status()
         self.root.protocol("WM_DELETE_WINDOW", self.close)
         self.root.after(100, self._poll_events)
+        self.root.after(250, self._poll_run_preflight)
 
     @staticmethod
     def _movie_factory():
@@ -558,7 +582,7 @@ class SlideMovieApp:
         self.sub_check = ttk.Checkbutton(self.project_frame, variable=self.sub_mode_var, command=self._sub_changed)
         self.sub_check.grid(row=2, column=0, columnspan=2, sticky="w", padx=4, pady=2); self.labels["sub_mode"] = self.sub_check
         self.interactive_widgets.append(self.sub_check)
-        self.sub_label, self.sub_entry = self._row(self.project_frame, 3, "sub", self.sub_var)
+        self.sub_label, self.sub_entry = self._row(self.project_frame, 3, "sub", self.sub_var, browse="subproject")
         self._row(self.project_frame, 4, "output", self.output_var, browse="dir")
         self._row(self.project_frame, 5, "filename", self.filename_var)
         self.open_folder_label = ttk.Label(self.project_frame)
@@ -576,7 +600,6 @@ class SlideMovieApp:
         self.status_frame = ttk.LabelFrame(self.project_tab); self.status_frame.grid(row=1, column=0, sticky="ew", pady=(8, 0))
         self.status_frame.columnconfigure(0, weight=1)
         self.status_label = ttk.Label(self.status_frame, textvariable=self.status_var, justify="left", wraplength=max(250, width - 100)); self.status_label.grid(row=0, column=0, sticky="w", padx=4, pady=4)
-        self.refresh_button = ttk.Button(self.status_frame, command=self.refresh_status); self.refresh_button.grid(row=0, column=1, padx=4, pady=4)
         self.action_frame = ttk.LabelFrame(self.project_tab); self.action_frame.grid(row=2, column=0, sticky="ew", pady=(8, 0))
         self.pptx_check = ttk.Checkbutton(self.action_frame, variable=self.pptx_var, command=self._update_run_state); self.pptx_check.grid(row=0, column=0, padx=4)
         self.video_check = ttk.Checkbutton(self.action_frame, variable=self.video_var, command=self._update_run_state); self.video_check.grid(row=0, column=1, padx=4)
@@ -662,7 +685,8 @@ class SlideMovieApp:
         entry = self.ttk.Entry(parent, textvariable=variable); entry.grid(row=row, column=1, sticky="ew", padx=4, pady=2)
         self.interactive_widgets.append(entry)
         if browse:
-            button = self.ttk.Button(parent, command=lambda: self._browse(variable)); button.grid(row=row, column=2, padx=4, pady=2); self.labels[key + "_browse"] = button
+            command = self._browse_subproject if browse == "subproject" else lambda: self._browse(variable)
+            button = self.ttk.Button(parent, command=command); button.grid(row=row, column=2, padx=4, pady=2); self.labels[key + "_browse"] = button
             self.interactive_widgets.append(button)
         return label, entry
 
@@ -690,7 +714,7 @@ class SlideMovieApp:
         self.notebook.tab(self.log_tab, text=text["log_tab"])
         self.pptx_check.configure(text=text["pptx"]); self.video_check.configure(text=text["video"]); self.pdf_check.configure(text="PDF"); self.debug_check.configure(text=text["debug"])
         self.use_prompt_label.configure(text=text["use_prompt"]); self.prompt_label.configure(text=text["prompt"]); self.separator_label.configure(text=text["separator"])
-        self.restore_button.configure(text=text["restore"]); self.save_local_button.configure(text=text["save_local"]); self.refresh_button.configure(text=text["refresh"]); self.run_button.configure(text=text["run"]); self.clear_button.configure(text=text["clear"]); self.website_button.configure(text=text["website"]); self.exit_button.configure(text=text["exit"])
+        self.restore_button.configure(text=text["restore"]); self.save_local_button.configure(text=text["save_local"]); self.run_button.configure(text=text["run"]); self.clear_button.configure(text=text["clear"]); self.website_button.configure(text=text["website"]); self.exit_button.configure(text=text["exit"])
         self.use_prompt_combo.configure(values=(text["yes"], text["no"]))
         self.use_prompt_combo.set({"yes": text["yes"], "no": text["no"]}[choice])
         self.language_combo.set("日本語" if self.language == "ja" else "English")
@@ -745,7 +769,9 @@ class SlideMovieApp:
         self._populate()
 
     def _toggle_sub(self):
-        self.sub_entry.configure(state="normal" if self.sub_mode_var.get() else "disabled")
+        state = "normal" if self.sub_mode_var.get() else "disabled"
+        self.sub_entry.configure(state=state)
+        self.labels["sub_browse"].configure(state=state)
 
     def _sub_changed(self):
         self._toggle_sub()
@@ -770,11 +796,33 @@ class SlideMovieApp:
         self.run_check_var.set(message)
         self.run_button.configure(state="disabled" if message else "normal")
 
+    def _poll_run_preflight(self):
+        """Recheck inputs and source files that can change outside the GUI."""
+        if not self.running:
+            self._update_run_state()
+        try:
+            self.root.after(250, self._poll_run_preflight)
+        except self.tk.TclError:
+            # The window has already been destroyed.
+            pass
+
     def _browse(self, variable):
         from tkinter import filedialog
         value = filedialog.askdirectory(initialdir=variable.get() or ".")
         if value:
             variable.set(value)
+
+    def _browse_subproject(self):
+        from tkinter import filedialog, messagebox
+        source_dir = display_source_path(self.source_var.get())
+        selected = filedialog.askdirectory(initialdir=source_dir)
+        if not selected:
+            return
+        if os.path.dirname(os.path.abspath(selected)) != source_dir:
+            messagebox.showerror(TEXT[self.language]["sub"],
+                                 TEXT[self.language]["subfolder_required"], parent=self.root)
+            return
+        self.sub_var.set(os.path.basename(selected))
 
     def _open_website(self):
         webbrowser.open(official_website_url(self.language), new=2)
@@ -822,15 +870,41 @@ class SlideMovieApp:
             self.status_var.set(text["unreadable"] + summary["error"]); return
         def task(item):
             status = item.get("status", "-")
+            status = text.get(f"status_{status}", status)
             generated = item.get("generated_at")
             return status + (" (" + str(generated) + ")" if generated else "")
+        input_dir = self.source_var.get().strip()
+        filename = self.sub_var.get().strip() if self.sub_mode_var.get() else self.project_var.get().strip()
+        if self.sub_mode_var.get():
+            input_dir = os.path.join(input_dir, self.sub_var.get().strip())
+        pptx_item = summary["pptx"]
+        pptx_text = pptx_display_status(
+            self.language, pptx_item, os.path.join(input_dir, f"{filename}.pptx"))
+        if pptx_item.get("status") == "generated" and pptx_item.get("generated_at"):
+            pptx_text += " (" + str(pptx_item["generated_at"]) + ")"
+        final_video = summary["final_video"]
+        final_text = task(final_video)
+        if final_video.get("status") == "generated":
+            filename = final_video.get("file_name")
+            generated_at = final_video.get("generated_at")
+            generated_date = str(generated_at).split("T", 1)[0] if generated_at else None
+            final_text = str(filename) if filename else final_text
+            if generated_date:
+                final_text += f" ({generated_date})"
+            duration_min = final_video.get("duration_min")
+            duration_sec = final_video.get("duration_sec")
+            if isinstance(duration_min, (int, float)):
+                final_text += f" ({text['duration']}: {duration_min:.2f} min)"
+            elif isinstance(duration_sec, (int, float)):
+                final_text += f" ({text['duration']}: {duration_sec:.1f} s)"
         tts = summary["tts"]
         self.status_var.set("\n".join((
             f"{text['status_file']}: {self._status_path()}",
             f"{text['project_id']}: {summary.get('project_id') or '-'}    {text['checked']}: {summary.get('last_checked') or '-'}",
-            f"{text['pptx_status']}: {task(summary['pptx'])}    {text['images_status']}: {task(summary['images'])}",
-            f"{text['slides']}: {summary['slides_total']} (done: {summary['slides_done']}, failed: {summary['slides_failed']})",
+            f"{text['pptx_status']}: {pptx_text}    {text['images_status']}: {task(summary['images'])}",
             f"{text['audio']}: {summary['audio_total']} ({text['generated']}: {summary['audio_generated']}, {text['not_generated']}: {summary['audio_total'] - summary['audio_generated'] - summary['audio_failed']}, {text['failed']}: {summary['audio_failed']})",
+            f"{text['video_files']}: {summary['slides_total']} ({text['completed_count']}: {summary['slides_done']}, {text['failed_count']}: {summary['slides_failed']})",
+            f"{text['final_video']}: {final_text}",
             f"{text['tts']}: {tts.get('provider') or '-'} / {tts.get('model') or '-'} / {tts.get('voice') or '-'}",
         )))
 
@@ -1064,7 +1138,7 @@ class SlideMovieApp:
         self.state_label.configure(text=TEXT[self.language][state])
 
     def _set_controls(self, state):
-        for widget in self.interactive_widgets + [self.run_button, self.clear_button, self.exit_button, self.refresh_button]:
+        for widget in self.interactive_widgets + [self.run_button, self.clear_button, self.exit_button]:
             widget.configure(state=state)
         if state == "normal":
             self.use_prompt_combo.configure(state="readonly")
