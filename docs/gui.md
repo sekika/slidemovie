@@ -28,6 +28,8 @@ Command-line values can prefill the GUI. For example, `slidemovie demo -g --vide
 
 Use **Input files** and **Output files** under **Open folder** to open the actual project source and output directories in your file manager.
 
+**Output filename** is the name of the generated video without its extension. If it is blank, the project ID is used. The CLI `-f` option can prefill and override this value.
+
 ## Settings
 
 The **Settings** tab initially shows the effective values from [`config.json`]({{ '/configuration/' | relative_url }}).
@@ -37,6 +39,8 @@ The **Settings** tab initially shows the effective values from [`config.json`]({
 - **General** includes `silence_sec`.
 
 For the prompt separator and split characters, line breaks are shown as `\n` in the fields and are converted to actual line breaks when the build runs. **Restore settings** returns the fields to the values loaded from configuration.
+
+**Save to local config** saves the settings fields and output filename to `config.json` beside the input Markdown file and loads them the next time the GUI starts. Output root is not saved. For a subproject, this is `source-folder/subproject/config.json`; for a regular project, it is `source-folder/config.json`. Existing settings that the GUI does not edit are preserved.
 
 ## Project status and recorded settings
 

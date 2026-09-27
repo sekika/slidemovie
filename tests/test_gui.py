@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 from slidemovie.gui import (apply_stored_tts_config, display_path_value, display_setting_value, open_folder,
                             build_settings_from_status, load_stored_tts_config, official_website_url, options_from_args,
                             display_prompt_separator, display_source_path, parse_prompt_separator, parse_screen_size, project_folder_paths, run_build, SlideMovieApp,
-                            summarize_status, TEXT)
+                            load_local_config, local_config_path, save_local_config, summarize_status, TEXT)
 
 
 def _args(**changes):
@@ -44,6 +44,125 @@ def test_display_path_value_uses_config_unless_cli_path_is_explicit():
 def test_display_source_path_expands_the_current_or_relative_directory():
     assert display_source_path(".") == os.getcwd()
     assert display_source_path("project") == os.path.join(os.getcwd(), "project")
+
+
+def test_local_config_path_is_next_to_the_subproject_markdown_input():
+    assert local_config_path("/work", "") == "/work/config.json"
+    assert local_config_path("/work", "chapter-1") == "/work/chapter-1/config.json"
+
+
+def test_save_local_config_preserves_unrelated_keys(tmp_path):
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"custom_key": "keep", "video_fps": 24,
+                                "output_root": "/old", "output_filename": "old"}), encoding="utf-8")
+
+    save_local_config(str(path), {"video_fps": 30, "screen_size": [1920, 1080],
+                                  "output_filename": "new"})
+
+    assert json.loads(path.read_text(encoding="utf-8")) == {
+        "custom_key": "keep", "video_fps": 30, "screen_size": [1920, 1080],
+        "output_filename": "new",
+    }
+    assert load_local_config(str(path))["video_fps"] == 30
+
+
+def test_local_config_values_come_from_the_current_form_inputs():
+    class Variable:
+        def __init__(self, value): self.value = value
+        def get(self): return self.value
+
+    class Text:
+        def __init__(self, value): self.value = value
+        def get(self, *_args): return self.value
+
+    app = SimpleNamespace(
+        setting_vars={
+            "tts_provider": Variable("openai"), "tts_model": Variable("gpt-4o-mini-tts"),
+            "tts_voice": Variable("alloy"), "tts_voicevox_url": Variable(""),
+            "chunk_size": Variable("900"), "split_chars": Variable("。\\n"),
+            "chunk_overflow": Variable("extend"), "screen_size": Variable("1920x1080"),
+            "image_pad_color": Variable("black"), "video_fps": Variable("60"),
+            "silence_sec": Variable("1.5"),
+        },
+        prompt_text=Text("Speak clearly"), separator_text=Text("\\n"),
+        output_var=Variable("/movies"), filename_var=Variable("demo"),
+        _prompt_choice=lambda: "yes",
+    )
+    app._form_settings = lambda: SlideMovieApp._form_settings(app)
+
+    values = SlideMovieApp._local_config_values(app)
+
+    assert values["video_fps"] == 60
+    assert values["screen_size"] == [1920, 1080]
+    assert values["prompt"] == "Speak clearly"
+    assert values["prompt_separator"] == "\n"
+    assert values["tts_voicevox_url"] is None
+    assert "output_root" not in values
+    assert values["output_filename"] == "demo"
+
+
+def test_options_apply_settings_loaded_from_local_config():
+    class Variable:
+        def __init__(self, value): self.value = value
+        def get(self): return self.value
+
+    class Text:
+        def __init__(self, value): self.value = value
+        def get(self, *_args): return self.value
+
+    app = SimpleNamespace(
+        overrides={"tts_provider", "tts_model", "tts_voice", "tts_voicevox_url",
+                   "chunk_size", "split_chars", "chunk_overflow", "prompt",
+                   "prompt_separator", "tts_use_prompt"},
+        path_overrides={"output_filename"},
+        setting_vars={
+            "tts_provider": Variable("google"), "tts_model": Variable("model"),
+            "tts_voice": Variable("voice"), "tts_voicevox_url": Variable(""),
+            "chunk_size": Variable("700"), "split_chars": Variable("。\\n"),
+            "chunk_overflow": Variable("error"),
+        },
+        prompt_text=Text("prompt"), separator_text=Text("\\n\\n## 原稿\\n"),
+        filename_var=Variable("movie"), project_var=Variable("project"),
+        source_var=Variable("/source"), sub_var=Variable(""),
+        sub_mode_var=Variable(False), output_var=Variable(""), pptx_var=Variable(False),
+        video_var=Variable(True), pdf_var=Variable(False), debug_var=Variable(False),
+        _prompt_choice=lambda: "yes",
+    )
+
+    options = SlideMovieApp._options(app)
+
+    assert options["overrides"]["tts_provider"] == "google"
+    assert options["overrides"]["prompt_separator"] == "\n\n## 原稿\n"
+    assert options["overrides"]["output_filename"] == "movie"
+
+
+def test_setting_text_value_restores_a_disabled_widget_after_update():
+    class Text:
+        def __init__(self):
+            self.state = "disabled"
+            self.value = "old"
+
+        def cget(self, name):
+            assert name == "state"
+            return self.state
+
+        def configure(self, **kwargs):
+            self.state = kwargs.get("state", self.state)
+
+        def delete(self, *_args):
+            self.value = ""
+
+        def insert(self, _index, value):
+            self.value = value
+
+        def edit_modified(self, _value):
+            pass
+
+    text = Text()
+    SlideMovieApp._set_text_value(text, "new value")
+
+    assert text.value == "new value"
+    assert text.state == "disabled"
 
 
 def test_action_required_message_is_localized():

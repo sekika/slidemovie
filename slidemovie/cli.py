@@ -148,6 +148,9 @@ def main():
         logger.error(f"Failed to initialize Movie class: {e}")
         sys.exit(1)
 
+    # Load the config beside the Markdown input before applying CLI overrides.
+    movie.load_project_config(args.source_dir, args.sub or "")
+
     # Exit if no action is specified
     if not args.pptx and not args.video:
         parser.print_help()

@@ -24,6 +24,9 @@ SETTING_NAMES = (
     "screen_size", "image_pad_color", "video_fps", "silence_sec",
 )
 
+# Output root is a per-run choice, not a reusable local project setting.
+LOCAL_CONFIG_EXCLUDED_KEYS = ("output_root",)
+
 TTS_STATUS_FIELDS = {
     "provider": "tts_provider",
     "model": "tts_model",
@@ -85,6 +88,7 @@ TEXT = {
         "voicevox": "VOICEVOX URL", "prompt": "Style prompt", "use_prompt": "Use prompt",
         "separator": "Prompt separator", "chunk": "Chunk size", "split": "Split characters",
         "overflow": "On no split", "screen_size": "Screen size", "image_pad_color": "Image padding color", "video_fps": "Video FPS", "silence_sec": "Silence (seconds)", "restore": "Restore settings", "status": "Project status",
+        "save_local": "Save to local config", "saved_local": "Saved local config: ", "save_failed": "Could not save local config: ",
         "refresh": "Refresh status", "run": "Run", "clear": "Clear log", "website": "Website", "exit": "Exit",
         "idle": "Idle", "running": "Running", "success": "Succeeded", "failed": "Failed",
         "yes": "Use", "no": "Do not use",
@@ -112,6 +116,7 @@ TEXT = {
         "voicevox": "VOICEVOX URL", "prompt": "スタイルプロンプト", "use_prompt": "プロンプトを使用",
         "separator": "プロンプト区切り", "chunk": "チャンクサイズ", "split": "分割候補文字",
         "overflow": "分割不可時", "screen_size": "画面サイズ", "image_pad_color": "画像余白色", "video_fps": "動画 FPS", "silence_sec": "無音時間（秒）", "restore": "設定から戻す", "status": "プロジェクトの状態",
+        "save_local": "ローカル設定に保存", "saved_local": "ローカル設定を保存しました: ", "save_failed": "ローカル設定を保存できません: ",
         "refresh": "状態を更新", "run": "実行", "clear": "ログを消去", "website": "公式サイト", "exit": "終了",
         "idle": "待機中", "running": "実行中", "success": "成功", "failed": "失敗",
         "yes": "使用する", "no": "使用しない",
@@ -196,6 +201,41 @@ def display_path_value(initial_options, settings, path_overrides, name):
 def display_source_path(path):
     """Expand the source directory so the GUI never presents an ambiguous '.'."""
     return os.path.abspath(os.path.expanduser(path or "."))
+
+
+def local_config_path(source_dir, subproject_name=""):
+    """Return the config next to the Markdown input for this project."""
+    input_dir = display_source_path(source_dir)
+    if subproject_name:
+        input_dir = os.path.join(input_dir, subproject_name)
+    return os.path.join(input_dir, "config.json")
+
+
+def save_local_config(path, values):
+    """Merge GUI settings into a source-folder config.json without losing other keys."""
+    existing = {}
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as config_file:
+            existing = json.load(config_file)
+        if not isinstance(existing, dict):
+            raise ValueError("config.json root value is not an object")
+    for key in LOCAL_CONFIG_EXCLUDED_KEYS:
+        existing.pop(key, None)
+    existing.update(values)
+    with open(path, "w", encoding="utf-8") as config_file:
+        json.dump(existing, config_file, ensure_ascii=False, indent=4)
+        config_file.write("\n")
+
+
+def load_local_config(path):
+    """Return a local config object, rejecting malformed config files."""
+    if not os.path.isfile(path):
+        return {}
+    with open(path, encoding="utf-8") as config_file:
+        values = json.load(config_file)
+    if not isinstance(values, dict):
+        raise ValueError("config.json root value is not an object")
+    return values
 
 
 def open_folder(path):
@@ -333,6 +373,9 @@ class QueueLogHandler(logging.Handler):
 def run_build(movie_factory, options, confirm_callback=None, tts_conflict_callback=None):
     """Run the shared Movie workflow; kept free of Tk for unit testing."""
     movie = movie_factory()
+    load_project_config = getattr(movie, "load_project_config", None)
+    if callable(load_project_config):
+        load_project_config(options["source_dir"], options.get("subproject_name", ""))
     for name, value in options.get("overrides", {}).items():
         setattr(movie, name, value)
     if confirm_callback:
@@ -400,6 +443,27 @@ class SlideMovieApp:
         self.settings["tts_use_prompt"] = getattr(movie, "tts_use_prompt", True)
         self.settings["output_root"] = getattr(movie, "output_root", None)
         self.settings["output_filename"] = getattr(movie, "output_filename", None)
+        # The local config belongs beside the Markdown input.  This differs
+        # from source_dir when the selected project is a subproject.
+        config_path = local_config_path(
+            self.initial_options.get("source_dir"),
+            self.initial_options.get("subproject_name", ""),
+        )
+        try:
+            local_settings = load_local_config(config_path)
+            self.settings.update(local_settings)
+            # Movie is created before project paths are configured, so it
+            # cannot discover a config beside an arbitrary input file on its
+            # own.  Pass every locally configured GUI setting explicitly to
+            # the build, not only fields the user edits after opening the GUI.
+            self.overrides.update(
+                name for name in local_settings
+                if name in SETTING_NAMES or name == "tts_use_prompt"
+            )
+            if "output_filename" in local_settings:
+                self.path_overrides.add("output_filename")
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            logging.getLogger(__name__).warning("Could not load local config %s: %s", config_path, exc)
 
     def _make_variables(self):
         tk = self.tk
@@ -458,15 +522,11 @@ class SlideMovieApp:
         self.sub_label, self.sub_entry = self._row(self.project_frame, 3, "sub", self.sub_var)
         self._row(self.project_frame, 4, "output", self.output_var, browse="dir")
         self._row(self.project_frame, 5, "filename", self.filename_var)
-        self.debug_check = ttk.Checkbutton(self.project_frame, variable=self.debug_var)
-        self.debug_check.grid(row=6, column=0, columnspan=2, sticky="w", padx=4, pady=2)
-        self.labels["debug"] = self.debug_check
-        self.interactive_widgets.append(self.debug_check)
         self.open_folder_label = ttk.Label(self.project_frame)
-        self.open_folder_label.grid(row=7, column=0, sticky="w", padx=4, pady=2)
+        self.open_folder_label.grid(row=6, column=0, sticky="w", padx=4, pady=2)
         self.labels["open_folder"] = self.open_folder_label
         open_buttons = ttk.Frame(self.project_frame)
-        open_buttons.grid(row=7, column=1, sticky="w", padx=4, pady=2)
+        open_buttons.grid(row=6, column=1, sticky="w", padx=4, pady=2)
         self.open_source_button = ttk.Button(open_buttons, command=self._open_source_folder)
         self.open_source_button.grid(row=0, column=0, padx=(0, 4))
         self.open_output_button = ttk.Button(open_buttons, command=self._open_output_folder)
@@ -474,14 +534,20 @@ class SlideMovieApp:
         self.labels["input_files"] = self.open_source_button
         self.labels["output_files"] = self.open_output_button
         self.interactive_widgets.extend((self.open_source_button, self.open_output_button))
-        self.action_frame = ttk.LabelFrame(self.project_tab); self.action_frame.grid(row=1, column=0, sticky="ew", pady=(8, 0))
+        self.status_frame = ttk.LabelFrame(self.project_tab); self.status_frame.grid(row=1, column=0, sticky="ew", pady=(8, 0))
+        self.status_frame.columnconfigure(0, weight=1)
+        self.status_label = ttk.Label(self.status_frame, textvariable=self.status_var, justify="left", wraplength=max(250, width - 100)); self.status_label.grid(row=0, column=0, sticky="w", padx=4, pady=4)
+        self.refresh_button = ttk.Button(self.status_frame, command=self.refresh_status); self.refresh_button.grid(row=0, column=1, padx=4, pady=4)
+        self.action_frame = ttk.LabelFrame(self.project_tab); self.action_frame.grid(row=2, column=0, sticky="ew", pady=(8, 0))
         self.pptx_check = ttk.Checkbutton(self.action_frame, variable=self.pptx_var); self.pptx_check.grid(row=0, column=0, padx=4)
         self.video_check = ttk.Checkbutton(self.action_frame, variable=self.video_var); self.video_check.grid(row=0, column=1, padx=4)
         self.interactive_widgets.extend((self.pptx_check, self.video_check))
-        self.source_frame = ttk.LabelFrame(self.project_tab); self.source_frame.grid(row=2, column=0, sticky="ew", pady=(8, 0))
+        self.source_frame = ttk.LabelFrame(self.project_tab); self.source_frame.grid(row=3, column=0, sticky="ew", pady=(8, 0))
         self.pdf_check = ttk.Checkbutton(self.source_frame, variable=self.pdf_var)
         self.pdf_check.grid(row=0, column=0, padx=4, pady=2, sticky="w")
         self.interactive_widgets.append(self.pdf_check)
+        self.run_button = ttk.Button(self.source_frame, command=self.start)
+        self.run_button.grid(row=1, column=0, padx=4, pady=(4, 2), sticky="w")
         self.settings_canvas = tk.Canvas(self.settings_tab, highlightthickness=0)
         settings_scroll = ttk.Scrollbar(self.settings_tab, orient="vertical", command=self.settings_canvas.yview)
         self.settings_canvas.configure(yscrollcommand=settings_scroll.set)
@@ -515,26 +581,27 @@ class SlideMovieApp:
         self.general_settings_frame = ttk.LabelFrame(settings_inner); self.general_settings_frame.grid(row=2, column=0, sticky="ew", pady=(8, 0))
         self.general_settings_frame.columnconfigure(1, weight=1)
         self._setting_row(0, "silence_sec", "silence_sec", parent=self.general_settings_frame)
+        self.save_local_button = ttk.Button(self.general_settings_frame, command=self.save_local_settings); self.save_local_button.grid(row=1, column=0, sticky="w", padx=4, pady=4)
         self.restore_button = ttk.Button(self.general_settings_frame, command=self.restore_settings); self.restore_button.grid(row=1, column=1, sticky="e", padx=4, pady=4)
-        self.interactive_widgets.append(self.restore_button)
-        self.status_frame = ttk.LabelFrame(self.project_tab); self.status_frame.grid(row=3, column=0, sticky="ew", pady=(8, 0))
-        self.status_frame.columnconfigure(0, weight=1)
-        self.status_label = ttk.Label(self.status_frame, textvariable=self.status_var, justify="left", wraplength=max(250, width - 100)); self.status_label.grid(row=0, column=0, sticky="w", padx=4, pady=4)
-        self.refresh_button = ttk.Button(self.status_frame, command=self.refresh_status); self.refresh_button.grid(row=0, column=1, padx=4, pady=4)
+        self.interactive_widgets.extend((self.save_local_button, self.restore_button))
         self.log_tab.columnconfigure(0, weight=1); self.log_tab.rowconfigure(0, weight=1)
         self.log = tk.Text(self.log_tab, height=12, wrap="none", state="disabled"); self.log.grid(row=0, column=0, sticky="nsew")
         log_scroll = ttk.Scrollbar(self.log_tab, orient="vertical", command=self.log.yview); log_scroll.grid(row=0, column=1, sticky="ns")
         log_xscroll = ttk.Scrollbar(self.log_tab, orient="horizontal", command=self.log.xview); log_xscroll.grid(row=1, column=0, sticky="ew")
         self.log.configure(yscrollcommand=log_scroll.set, xscrollcommand=log_xscroll.set)
+        log_controls = ttk.Frame(self.log_tab); log_controls.grid(row=2, column=0, sticky="ew", pady=(6, 0))
+        self.debug_check = ttk.Checkbutton(log_controls, variable=self.debug_var)
+        self.debug_check.grid(row=0, column=0, sticky="w")
+        self.clear_button = ttk.Button(log_controls, command=self.clear_log)
+        self.clear_button.grid(row=0, column=1, padx=4)
+        self.interactive_widgets.append(self.debug_check)
         controls = ttk.Frame(outer); controls.grid(row=1, column=0, sticky="ew", pady=(8, 0))
         self.language_combo = ttk.Combobox(controls, state="readonly", values=("日本語", "English"), width=10); self.language_combo.grid(row=0, column=0, sticky="w")
         self.language_combo.bind("<<ComboboxSelected>>", self._change_language)
-        self.run_button = ttk.Button(controls, command=self.start); self.run_button.grid(row=0, column=1, padx=4)
-        self.clear_button = ttk.Button(controls, command=self.clear_log); self.clear_button.grid(row=0, column=2, padx=4)
-        self.website_button = ttk.Button(controls, command=self._open_website); self.website_button.grid(row=0, column=3, padx=4)
-        self.exit_button = ttk.Button(controls, command=self.close); self.exit_button.grid(row=0, column=4, padx=4)
-        self.state_label = ttk.Label(controls); self.state_label.grid(row=0, column=5, sticky="e", padx=8)
-        controls.columnconfigure(5, weight=1)
+        self.website_button = ttk.Button(controls, command=self._open_website); self.website_button.grid(row=0, column=1, padx=4)
+        self.exit_button = ttk.Button(controls, command=self.close); self.exit_button.grid(row=0, column=2, padx=4)
+        self.state_label = ttk.Label(controls); self.state_label.grid(row=0, column=3, sticky="e", padx=8)
+        controls.columnconfigure(3, weight=1)
         self.interactive_widgets.append(self.language_combo)
         for name, var in self.setting_vars.items():
             var.trace_add("write", lambda *_args, key=name: self._mark_override(key))
@@ -580,7 +647,7 @@ class SlideMovieApp:
         self.notebook.tab(self.log_tab, text=text["log_tab"])
         self.pptx_check.configure(text=text["pptx"]); self.video_check.configure(text=text["video"]); self.pdf_check.configure(text="PDF"); self.debug_check.configure(text=text["debug"])
         self.use_prompt_label.configure(text=text["use_prompt"]); self.prompt_label.configure(text=text["prompt"]); self.separator_label.configure(text=text["separator"])
-        self.restore_button.configure(text=text["restore"]); self.refresh_button.configure(text=text["refresh"]); self.run_button.configure(text=text["run"]); self.clear_button.configure(text=text["clear"]); self.website_button.configure(text=text["website"]); self.exit_button.configure(text=text["exit"])
+        self.restore_button.configure(text=text["restore"]); self.save_local_button.configure(text=text["save_local"]); self.refresh_button.configure(text=text["refresh"]); self.run_button.configure(text=text["run"]); self.clear_button.configure(text=text["clear"]); self.website_button.configure(text=text["website"]); self.exit_button.configure(text=text["exit"])
         self.use_prompt_combo.configure(values=(text["yes"], text["no"]))
         self.use_prompt_combo.set({"yes": text["yes"], "no": text["no"]}[choice])
         self.language_combo.set("日本語" if self.language == "ja" else "English")
@@ -732,6 +799,58 @@ class SlideMovieApp:
                 "build_video": self.video_var.get(), "use_pdf": self.pdf_var.get(),
                 "debug": self.debug_var.get(), "overrides": overrides}
 
+    def _form_settings(self):
+        """Return every visible setting in the types expected by config.json."""
+        values = {}
+        for name, variable in self.setting_vars.items():
+            value = variable.get()
+            if name in ("chunk_size", "video_fps"):
+                values[name] = int(value) if value else None
+            elif name == "screen_size":
+                values[name] = parse_screen_size(value)
+            elif name == "silence_sec":
+                values[name] = float(value)
+            elif name == "split_chars":
+                values[name] = parse_prompt_separator(value)
+            elif name == "tts_voicevox_url":
+                values[name] = value.strip() or None
+            else:
+                values[name] = value
+        values["prompt"] = self.prompt_text.get("1.0", "end-1c")
+        values["prompt_separator"] = parse_prompt_separator(self.separator_text.get("1.0", "end-1c"))
+        values["tts_use_prompt"] = self._prompt_choice() == "yes"
+        values["output_filename"] = self.filename_var.get().strip() or None
+        return values
+
+    def _local_config_values(self):
+        """Return the current values from every editable GUI input."""
+        return self._form_settings()
+
+    def save_local_settings(self):
+        """Save the visible settings to config.json in the selected source folder."""
+        from tkinter import messagebox
+        config_path = local_config_path(
+            self.source_var.get().strip(),
+            self.sub_var.get().strip() if self.sub_mode_var.get() else "",
+        )
+        if not os.path.isdir(os.path.dirname(config_path)):
+            messagebox.showerror(TEXT[self.language]["invalid"], TEXT[self.language]["invalid"], parent=self.root)
+            return
+        try:
+            values = self._local_config_values()
+            save_local_config(config_path, values)
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            messagebox.showerror(TEXT[self.language]["save_local"],
+                                 TEXT[self.language]["save_failed"] + str(exc), parent=self.root)
+            return
+        self.settings.update(values)
+        self.overrides.update(
+            name for name in values if name in SETTING_NAMES or name == "tts_use_prompt"
+        )
+        self.path_overrides.add("output_filename")
+        messagebox.showinfo(TEXT[self.language]["save_local"],
+                            TEXT[self.language]["saved_local"] + config_path, parent=self.root)
+
     def _validate(self):
         if not self.project_var.get().strip() or not self.source_var.get().strip() or not (self.pptx_var.get() or self.video_var.get()): return False
         if self.sub_mode_var.get() and not self.sub_var.get().strip(): return False
@@ -850,11 +969,15 @@ class SlideMovieApp:
         state = str(widget.cget("state"))
         if state == "disabled":
             widget.configure(state="normal")
-        widget.delete("1.0", "end")
-        widget.insert("1.0", "" if value is None else str(value))
-        widget.edit_modified(False)
-        if state == "disabled":
-            widget.configure(state="disabled")
+        try:
+            widget.delete("1.0", "end")
+            widget.insert("1.0", "" if value is None else str(value))
+            widget.edit_modified(False)
+        finally:
+            # Loading status.json must not re-enable fields disabled during
+            # an active build.
+            if state == "disabled":
+                widget.configure(state="disabled")
 
     def _populate_stored_build_config(self, stored_build):
         """Reflect every build setting available in status.json in the Settings tab."""

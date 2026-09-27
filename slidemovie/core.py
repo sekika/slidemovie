@@ -36,7 +36,7 @@ class Movie():
 
         This method checks for required external tools and loads the configuration settings.
         Settings are loaded in the following order of precedence (highest to lowest):
-        1. ./config.json (Current directory)
+        1. config.json beside the input Markdown file
         2. ~/.config/slidemovie/config.json (User home directory)
         3. Default settings defined in `_get_default_settings()`
         """
@@ -173,9 +173,8 @@ class Movie():
         """
         Loads settings from JSON files and merges them with defaults.
 
-        It looks for configuration in:
-        1. ~/.config/slidemovie/config.json
-        2. ./config.json
+        It first loads ~/.config/slidemovie/config.json.  The project-local
+        configuration is loaded after the input directory is known.
 
         Finally, it sets the configuration values as instance attributes.
         """
@@ -210,19 +209,7 @@ class Movie():
             except (json.JSONDecodeError, IOError) as e:
                 logger.warning(f"Failed to load {home_config_path}: {e}")
 
-        # 3. Process ./config.json (Current directory)
-        local_config_path = "./config.json"
-
-        if os.path.exists(local_config_path):
-            try:
-                with open(local_config_path, 'r', encoding='utf-8') as f:
-                    local_config = json.load(f)
-                    config.update(local_config)
-                logger.info(f"Loaded local config: {local_config_path}")
-            except (json.JSONDecodeError, IOError) as e:
-                logger.warning(f"Failed to load {local_config_path}: {e}")
-
-        # 4. Set attributes
+        # 3. Set attributes
 
         # Special handling: Convert screen_size from list to tuple
         if "screen_size" in config and isinstance(config["screen_size"], list):
@@ -231,6 +218,29 @@ class Movie():
         # Set dictionary values as instance attributes
         for key, value in config.items():
             setattr(self, key, value)
+
+    def load_project_config(self, source_dir, subproject_name=""):
+        """Load config.json beside the input Markdown file once per project."""
+        input_dir = os.path.join(source_dir, subproject_name) if subproject_name else source_dir
+        config_path = os.path.abspath(os.path.join(input_dir, "config.json"))
+        if getattr(self, "_project_config_path", None) == config_path:
+            return
+        self._project_config_path = config_path
+        if not os.path.isfile(config_path):
+            return
+        try:
+            with open(config_path, encoding="utf-8") as config_file:
+                config = json.load(config_file)
+            if not isinstance(config, dict):
+                raise ValueError("config.json root value is not an object")
+        except (json.JSONDecodeError, OSError, ValueError) as exc:
+            logger.warning(f"Failed to load {config_path}: {exc}")
+            return
+        if isinstance(config.get("screen_size"), list):
+            config["screen_size"] = tuple(config["screen_size"])
+        for key, value in config.items():
+            setattr(self, key, value)
+        logger.info(f"Loaded project config: {config_path}")
 
     def configure_project_paths(
             self, project_name, source_dir, output_root_dir=None):
@@ -243,6 +253,8 @@ class Movie():
             output_root_dir (str, optional): Root directory for video output.
                                              Defaults to `self.output_root` or `{source_dir}/movie`.
         """
+        self.load_project_config(source_dir)
+
         # Determine output root directory
         target_root = None
         is_automatic_path = False
@@ -310,6 +322,8 @@ class Movie():
             source_parent_dir (str): The directory containing the parent project folder.
             output_root_dir (str, optional): Root directory for video output.
         """
+        self.load_project_config(source_parent_dir, subproject_name)
+
         # Determine output root directory
         target_root = None
         is_automatic_path = False
@@ -446,6 +460,15 @@ class Movie():
                     logger.error(
                         f'Error: "::: notes" not found in {slide_id}.')
                     sys.exit()
+
+                # Save progress for each slide while a multi-slide TTS job is
+                # running.  An interrupted conversion is regenerated safely.
+                audio_state["status"] = "generating"
+                audio_state["generated_at"] = None
+                audio_state["duration_sec"] = None
+                state["last_checked"] = self._now()
+                self._save_audio_state(state)
+
                 self._speak_to_wav(
                     norm, wav_path, additional_prompt=add_prompt)
                 self.prepend_silence(wav_path)
@@ -1368,7 +1391,10 @@ class Movie():
             "chunk_size": self.chunk_size,
             "split_chars": self.split_chars,
             "chunk_overflow": self.chunk_overflow,
-            "tts_voicevox_url": self.tts_voicevox_url,
+            # An empty GUI/config field means that no custom VOICEVOX URL was
+            # configured.  Store the canonical None value so it agrees with
+            # status.json created before the GUI setting was saved.
+            "tts_voicevox_url": self.tts_voicevox_url or None,
         }
 
     def _get_wav_duration(self, wav_path):
