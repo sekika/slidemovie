@@ -9,14 +9,17 @@ import locale
 import logging
 import os
 import queue
+import subprocess
 import sys
 import threading
 import traceback
+import webbrowser
 
 
 SETTING_NAMES = (
     "tts_provider", "tts_model", "tts_voice", "tts_voicevox_url", "prompt",
     "prompt_separator", "chunk_size", "split_chars", "chunk_overflow",
+    "screen_size", "image_pad_color", "video_fps", "silence_sec",
 )
 
 TTS_STATUS_FIELDS = {
@@ -32,24 +35,57 @@ TTS_STATUS_FIELDS = {
     "tts_voicevox_url": "tts_voicevox_url",
 }
 
+TTS_STATUS_DEFAULTS = {
+    "chunk_size": None,
+    "split_chars": "。．.!！?？\n",
+    "chunk_overflow": "extend",
+    "tts_voicevox_url": None,
+    "prompt_separator": "",
+}
+
+
+def build_settings_from_status(stored_build):
+    """Flatten status.json's build_config into editable Movie attributes."""
+    if not isinstance(stored_build, dict):
+        return {}
+    values = {}
+    screen = stored_build.get("screen")
+    if isinstance(screen, dict) and "width" in screen and "height" in screen:
+        values["screen_size"] = [screen["width"], screen["height"]]
+    video = stored_build.get("video")
+    if isinstance(video, dict) and "fps" in video:
+        values["video_fps"] = video["fps"]
+    common = stored_build.get("common")
+    if isinstance(common, dict) and "silence_sec" in common:
+        values["silence_sec"] = common["silence_sec"]
+    if "image_pad_color" in stored_build:
+        values["image_pad_color"] = stored_build["image_pad_color"]
+    return values
+
+OFFICIAL_WEBSITES = {
+    "en": "https://sekika.github.io/slidemovie/",
+    "ja": "https://sekika.github.io/slidemovie/ja/",
+}
+
 
 TEXT = {
     "en": {
-        "title": "slidemovie 0.8.0", "project": "Project", "tts_tab": "TTS settings", "log_tab": "Log", "source": "Source folder",
+        "title": "slidemovie 0.8.0", "project": "Project", "settings_tab": "Settings", "log_tab": "Log", "source": "Source folder",
         "name": "Project name", "sub_mode": "Use subproject", "sub": "Subproject name",
-        "output": "Output root", "filename": "Output filename", "browse": "Browse",
+        "output": "Output root", "filename": "Output filename", "browse": "Browse", "open_folder": "Open folder",
+        "input_files": "Input files", "output_files": "Output files",
         "actions": "Actions", "pptx": "Build PPTX", "video": "Build video",
         "debug": "Debug logging",
-        "source_type": "Video image source", "settings": "TTS settings",
+        "source_type": "Video source", "tts_settings": "TTS settings", "video_format": "Video format", "general": "General",
         "provider": "Provider", "model": "Model", "voice": "Voice / style ID",
         "voicevox": "VOICEVOX URL", "prompt": "Style prompt", "use_prompt": "Use prompt",
         "separator": "Prompt separator", "chunk": "Chunk size", "split": "Split characters",
-        "overflow": "On no split", "restore": "Restore settings", "status": "Project status",
-        "refresh": "Refresh status", "run": "Run", "clear": "Clear log", "exit": "Exit",
+        "overflow": "On no split", "screen_size": "Screen size", "image_pad_color": "Image padding color", "video_fps": "Video FPS", "silence_sec": "Silence (seconds)", "restore": "Restore settings", "status": "Project status",
+        "refresh": "Refresh status", "run": "Run", "clear": "Clear log", "website": "Website", "exit": "Exit",
         "idle": "Idle", "running": "Running", "success": "Succeeded", "failed": "Failed",
-        "config": "From configuration", "yes": "Use", "no": "Do not use",
+        "yes": "Use", "no": "Do not use",
         "missing": "status.json has not been created.", "no_project": "Enter a project name to view status.",
-        "invalid": "Please correct the input.", "done": "Build completed.",
+        "invalid": "Please correct the input.", "action_required": "Please select an action.", "folder_not_found": "Folder does not exist.", "done": "Build completed.",
         "failed_message": "Build failed. See the log for details.",
         "confirm": "TTS settings differ from status.json. Choose which settings to use.",
         "use_status": "Use status.json settings", "overwrite": "Overwrite with current settings",
@@ -61,21 +97,22 @@ TEXT = {
         "not_generated": "not generated", "unreadable": "Could not read status.json: ",
     },
     "ja": {
-        "title": "slidemovie 0.8.0", "project": "プロジェクト", "tts_tab": "TTS 設定", "log_tab": "ログ", "source": "ソースフォルダー",
+        "title": "slidemovie 0.8.0", "project": "プロジェクト", "settings_tab": "設定", "log_tab": "ログ", "source": "ソースフォルダー",
         "name": "プロジェクト名", "sub_mode": "サブプロジェクトを使用", "sub": "サブプロジェクト名",
-        "output": "出力先ルート", "filename": "出力ファイル名", "browse": "参照",
+        "output": "出力先ルート", "filename": "出力ファイル名", "browse": "参照", "open_folder": "フォルダーを開く",
+        "input_files": "入力ファイル", "output_files": "出力ファイル",
         "actions": "実行内容", "pptx": "PPTX を生成", "video": "動画を生成",
         "debug": "デバッグログ",
-        "source_type": "動画の画像ソース", "settings": "TTS 設定",
+        "source_type": "動画ソース", "tts_settings": "TTS 設定", "video_format": "動画フォーマット", "general": "一般",
         "provider": "プロバイダー", "model": "モデル", "voice": "声 / style ID",
         "voicevox": "VOICEVOX URL", "prompt": "スタイルプロンプト", "use_prompt": "プロンプトを使用",
         "separator": "プロンプト区切り", "chunk": "チャンクサイズ", "split": "分割候補文字",
-        "overflow": "分割不可時", "restore": "設定から戻す", "status": "プロジェクトの状態",
-        "refresh": "状態を更新", "run": "実行", "clear": "ログを消去", "exit": "終了",
+        "overflow": "分割不可時", "screen_size": "画面サイズ", "image_pad_color": "画像余白色", "video_fps": "動画 FPS", "silence_sec": "無音時間（秒）", "restore": "設定から戻す", "status": "プロジェクトの状態",
+        "refresh": "状態を更新", "run": "実行", "clear": "ログを消去", "website": "公式サイト", "exit": "終了",
         "idle": "待機中", "running": "実行中", "success": "成功", "failed": "失敗",
-        "config": "設定ファイルに従う", "yes": "使用する", "no": "使用しない",
+        "yes": "使用する", "no": "使用しない",
         "missing": "status.json はまだ作成されていません。", "no_project": "状態を表示するにはプロジェクト名を入力してください。",
-        "invalid": "入力内容を確認してください。", "done": "ビルドが完了しました。",
+        "invalid": "入力内容を確認してください。", "action_required": "実行内容を選んでください。", "folder_not_found": "フォルダーが存在しません。", "done": "ビルドが完了しました。",
         "failed_message": "ビルドに失敗しました。詳細はログを確認してください。",
         "confirm": "TTS 設定が status.json と異なります。使用する設定を選択してください。",
         "use_status": "status.json の設定を使う", "overwrite": "現在の設定で上書きする",
@@ -137,6 +174,57 @@ def display_path_value(initial_options, settings, path_overrides, name):
     return settings.get(name) or ""
 
 
+def open_folder(path):
+    """Open an existing folder in the platform's file manager."""
+    if not os.path.isdir(path):
+        return False
+    if os.name == "nt":
+        os.startfile(path)
+    elif sys.platform == "darwin":
+        subprocess.Popen(["open", path])
+    else:
+        subprocess.Popen(["xdg-open", path])
+    return True
+
+
+def project_folder_paths(source_root, project_name, subproject_name, output_root):
+    """Return the source and output folders that hold a project's actual files."""
+    source_dir = os.path.join(source_root, subproject_name) if subproject_name else source_root
+    target_root = os.path.expanduser(output_root or os.path.join(source_root, "movie"))
+    output_dir = (os.path.join(target_root, project_name, subproject_name)
+                  if subproject_name else os.path.join(target_root, project_name))
+    return source_dir, output_dir
+
+
+def official_website_url(language):
+    return OFFICIAL_WEBSITES["ja" if language == "ja" else "en"]
+
+
+def display_setting_value(name, value):
+    if name == "split_chars":
+        return display_prompt_separator(value)
+    if name == "screen_size" and isinstance(value, (list, tuple)) and len(value) == 2:
+        return f"{value[0]}x{value[1]}"
+    return "" if value is None else str(value)
+
+
+def parse_screen_size(value):
+    parts = value.lower().replace(",", "x").split("x")
+    if len(parts) != 2 or not all(part.strip().isdigit() and int(part.strip()) > 0 for part in parts):
+        raise ValueError("screen_size must be WIDTHxHEIGHT")
+    return [int(part.strip()) for part in parts]
+
+
+def display_prompt_separator(value):
+    """Show line breaks as visible \"\\n\" notation in the separator field."""
+    return ("" if value is None else str(value)).replace("\\", "\\\\").replace("\r", "\\r").replace("\n", "\\n")
+
+
+def parse_prompt_separator(value):
+    """Turn visible newline notation in the separator field back into characters."""
+    return value.replace("\\r", "\r").replace("\\n", "\n").replace("\\\\", "\\")
+
+
 def summarize_status(path):
     """Return a privacy-conscious, tolerant status.json summary."""
     if not os.path.isfile(path):
@@ -180,7 +268,21 @@ def load_stored_tts_config(path):
     except (OSError, json.JSONDecodeError):
         return None
     tts = state.get("tts_config") if isinstance(state, dict) else None
-    return tts if isinstance(tts, dict) else None
+    if not isinstance(tts, dict):
+        return None
+    # Keep GUI behavior consistent with Movie._load_audio_state() for state
+    # files written before newer TTS keys (notably prompt_separator) existed.
+    return {**TTS_STATUS_DEFAULTS, **tts}
+
+
+def load_stored_build_config(path):
+    try:
+        with open(path, encoding="utf-8") as status_file:
+            state = json.load(status_file)
+    except (OSError, json.JSONDecodeError):
+        return None
+    build = state.get("build_config") if isinstance(state, dict) else None
+    return build if isinstance(build, dict) else None
 
 
 def apply_stored_tts_config(movie, stored_tts):
@@ -188,6 +290,11 @@ def apply_stored_tts_config(movie, stored_tts):
     for status_name, movie_name in TTS_STATUS_FIELDS.items():
         if status_name in stored_tts:
             setattr(movie, movie_name, stored_tts[status_name])
+
+
+def apply_stored_build_config(movie, stored_build):
+    for name, value in build_settings_from_status(stored_build).items():
+        setattr(movie, name, value)
 
 
 class QueueLogHandler(logging.Handler):
@@ -218,11 +325,14 @@ def run_build(movie_factory, options, confirm_callback=None, tts_conflict_callba
                                       options.get("output_root") or None)
     if tts_conflict_callback:
         stored_tts = load_stored_tts_config(movie.status_file)
+        stored_build = load_stored_build_config(movie.status_file)
         current_tts = movie._get_tts_config()
         if stored_tts is not None and stored_tts != current_tts:
             choice = tts_conflict_callback(stored_tts, current_tts)
             if choice == "use_status":
                 apply_stored_tts_config(movie, stored_tts)
+                if stored_build is not None:
+                    apply_stored_build_config(movie, stored_build)
             elif choice != "overwrite":
                 raise RuntimeError("Build cancelled by user.")
     if options.get("build_pptx"):
@@ -282,7 +392,7 @@ class SlideMovieApp:
         self.video_var = tk.BooleanVar(value=bool(initial.get("build_video")))
         self.pdf_var = tk.BooleanVar(value=bool(initial.get("use_pdf")))
         self.debug_var = tk.BooleanVar(value=bool(initial.get("debug")))
-        self.use_prompt_var = tk.StringVar(value="config")
+        self.use_prompt_var = tk.StringVar()
         self.setting_vars = {name: tk.StringVar() for name in SETTING_NAMES if name not in ("prompt", "prompt_separator")}
         self.status_var = tk.StringVar()
 
@@ -317,12 +427,30 @@ class SlideMovieApp:
         self.sub_label, self.sub_entry = self._row(self.project_frame, 3, "sub", self.sub_var)
         self._row(self.project_frame, 4, "output", self.output_var, browse="dir")
         self._row(self.project_frame, 5, "filename", self.filename_var)
+        self.debug_check = ttk.Checkbutton(self.project_frame, variable=self.debug_var)
+        self.debug_check.grid(row=6, column=0, columnspan=2, sticky="w", padx=4, pady=2)
+        self.labels["debug"] = self.debug_check
+        self.interactive_widgets.append(self.debug_check)
+        self.open_folder_label = ttk.Label(self.project_frame)
+        self.open_folder_label.grid(row=7, column=0, sticky="w", padx=4, pady=2)
+        self.labels["open_folder"] = self.open_folder_label
+        open_buttons = ttk.Frame(self.project_frame)
+        open_buttons.grid(row=7, column=1, sticky="w", padx=4, pady=2)
+        self.open_source_button = ttk.Button(open_buttons, command=self._open_source_folder)
+        self.open_source_button.grid(row=0, column=0, padx=(0, 4))
+        self.open_output_button = ttk.Button(open_buttons, command=self._open_output_folder)
+        self.open_output_button.grid(row=0, column=1)
+        self.labels["input_files"] = self.open_source_button
+        self.labels["output_files"] = self.open_output_button
+        self.interactive_widgets.extend((self.open_source_button, self.open_output_button))
         self.action_frame = ttk.LabelFrame(self.project_tab); self.action_frame.grid(row=1, column=0, sticky="ew", pady=(8, 0))
         self.pptx_check = ttk.Checkbutton(self.action_frame, variable=self.pptx_var); self.pptx_check.grid(row=0, column=0, padx=4)
         self.video_check = ttk.Checkbutton(self.action_frame, variable=self.video_var); self.video_check.grid(row=0, column=1, padx=4)
-        self.pdf_check = ttk.Checkbutton(self.action_frame, variable=self.pdf_var); self.pdf_check.grid(row=0, column=2, padx=4)
-        self.debug_check = ttk.Checkbutton(self.action_frame, variable=self.debug_var); self.debug_check.grid(row=0, column=3, padx=4)
-        self.interactive_widgets.extend((self.pptx_check, self.video_check, self.pdf_check, self.debug_check))
+        self.interactive_widgets.extend((self.pptx_check, self.video_check))
+        self.source_frame = ttk.LabelFrame(self.project_tab); self.source_frame.grid(row=2, column=0, sticky="ew", pady=(8, 0))
+        self.pdf_check = ttk.Checkbutton(self.source_frame, variable=self.pdf_var)
+        self.pdf_check.grid(row=0, column=0, padx=4, pady=2, sticky="w")
+        self.interactive_widgets.append(self.pdf_check)
         self.settings_canvas = tk.Canvas(self.settings_tab, highlightthickness=0)
         settings_scroll = ttk.Scrollbar(self.settings_tab, orient="vertical", command=self.settings_canvas.yview)
         self.settings_canvas.configure(yscrollcommand=settings_scroll.set)
@@ -348,9 +476,17 @@ class SlideMovieApp:
         self.separator_label = ttk.Label(self.settings_frame); self.separator_label.grid(row=9, column=0, sticky="nw", padx=4, pady=2)
         self.separator_text = tk.Text(self.settings_frame, height=2, width=50); self.separator_text.grid(row=9, column=1, sticky="ew", padx=4, pady=2)
         self.interactive_widgets.extend((self.prompt_text, self.separator_text))
-        self.restore_button = ttk.Button(self.settings_frame, command=self.restore_settings); self.restore_button.grid(row=10, column=1, sticky="e", padx=4, pady=4)
+        self.video_settings_frame = ttk.LabelFrame(settings_inner); self.video_settings_frame.grid(row=1, column=0, sticky="ew", pady=(8, 0))
+        self.video_settings_frame.columnconfigure(1, weight=1)
+        self._setting_row(0, "screen_size", "screen_size", parent=self.video_settings_frame)
+        self._setting_row(1, "image_pad_color", "image_pad_color", parent=self.video_settings_frame)
+        self._setting_row(2, "video_fps", "video_fps", parent=self.video_settings_frame)
+        self.general_settings_frame = ttk.LabelFrame(settings_inner); self.general_settings_frame.grid(row=2, column=0, sticky="ew", pady=(8, 0))
+        self.general_settings_frame.columnconfigure(1, weight=1)
+        self._setting_row(0, "silence_sec", "silence_sec", parent=self.general_settings_frame)
+        self.restore_button = ttk.Button(self.general_settings_frame, command=self.restore_settings); self.restore_button.grid(row=1, column=1, sticky="e", padx=4, pady=4)
         self.interactive_widgets.append(self.restore_button)
-        self.status_frame = ttk.LabelFrame(self.project_tab); self.status_frame.grid(row=2, column=0, sticky="ew", pady=(8, 0))
+        self.status_frame = ttk.LabelFrame(self.project_tab); self.status_frame.grid(row=3, column=0, sticky="ew", pady=(8, 0))
         self.status_frame.columnconfigure(0, weight=1)
         self.status_label = ttk.Label(self.status_frame, textvariable=self.status_var, justify="left", wraplength=max(250, width - 100)); self.status_label.grid(row=0, column=0, sticky="w", padx=4, pady=4)
         self.refresh_button = ttk.Button(self.status_frame, command=self.refresh_status); self.refresh_button.grid(row=0, column=1, padx=4, pady=4)
@@ -364,9 +500,10 @@ class SlideMovieApp:
         self.language_combo.bind("<<ComboboxSelected>>", self._change_language)
         self.run_button = ttk.Button(controls, command=self.start); self.run_button.grid(row=0, column=1, padx=4)
         self.clear_button = ttk.Button(controls, command=self.clear_log); self.clear_button.grid(row=0, column=2, padx=4)
-        self.exit_button = ttk.Button(controls, command=self.close); self.exit_button.grid(row=0, column=3, padx=4)
-        self.state_label = ttk.Label(controls); self.state_label.grid(row=0, column=4, sticky="e", padx=8)
-        controls.columnconfigure(4, weight=1)
+        self.website_button = ttk.Button(controls, command=self._open_website); self.website_button.grid(row=0, column=3, padx=4)
+        self.exit_button = ttk.Button(controls, command=self.close); self.exit_button.grid(row=0, column=4, padx=4)
+        self.state_label = ttk.Label(controls); self.state_label.grid(row=0, column=5, sticky="e", padx=8)
+        controls.columnconfigure(5, weight=1)
         self.interactive_widgets.append(self.language_combo)
         for name, var in self.setting_vars.items():
             var.trace_add("write", lambda *_args, key=name: self._mark_override(key))
@@ -388,12 +525,13 @@ class SlideMovieApp:
             self.interactive_widgets.append(button)
         return label, entry
 
-    def _setting_row(self, row, label_key, name, values=None):
-        label = self.ttk.Label(self.settings_frame); label.grid(row=row, column=0, sticky="w", padx=4, pady=2); self.labels[label_key] = label
+    def _setting_row(self, row, label_key, name, values=None, parent=None):
+        parent = parent or self.settings_frame
+        label = self.ttk.Label(parent); label.grid(row=row, column=0, sticky="w", padx=4, pady=2); self.labels[label_key] = label
         if values:
-            widget = self.ttk.Combobox(self.settings_frame, textvariable=self.setting_vars[name], values=values)
+            widget = self.ttk.Combobox(parent, textvariable=self.setting_vars[name], values=values)
         else:
-            widget = self.ttk.Entry(self.settings_frame, textvariable=self.setting_vars[name])
+            widget = self.ttk.Entry(parent, textvariable=self.setting_vars[name])
         widget.grid(row=row, column=1, sticky="ew", padx=4, pady=2)
         self.interactive_widgets.append(widget)
 
@@ -405,15 +543,15 @@ class SlideMovieApp:
         for name, widget in self.labels.items():
             key = name.replace("_browse", "")
             widget.configure(text=text["browse"] if name.endswith("_browse") else text[key])
-        self.project_frame.configure(text=text["project"]); self.action_frame.configure(text=text["actions"]); self.settings_frame.configure(text=text["settings"]); self.status_frame.configure(text=text["status"])
+        self.project_frame.configure(text=text["project"]); self.action_frame.configure(text=text["actions"]); self.source_frame.configure(text=text["source_type"]); self.settings_frame.configure(text=text["tts_settings"]); self.video_settings_frame.configure(text=text["video_format"]); self.general_settings_frame.configure(text=text["general"]); self.status_frame.configure(text=text["status"])
         self.notebook.tab(self.project_tab, text=text["project"])
-        self.notebook.tab(self.settings_tab, text=text["tts_tab"])
+        self.notebook.tab(self.settings_tab, text=text["settings_tab"])
         self.notebook.tab(self.log_tab, text=text["log_tab"])
         self.pptx_check.configure(text=text["pptx"]); self.video_check.configure(text=text["video"]); self.pdf_check.configure(text="PDF"); self.debug_check.configure(text=text["debug"])
         self.use_prompt_label.configure(text=text["use_prompt"]); self.prompt_label.configure(text=text["prompt"]); self.separator_label.configure(text=text["separator"])
-        self.restore_button.configure(text=text["restore"]); self.refresh_button.configure(text=text["refresh"]); self.run_button.configure(text=text["run"]); self.clear_button.configure(text=text["clear"]); self.exit_button.configure(text=text["exit"])
-        self.use_prompt_combo.configure(values=(text["config"], text["yes"], text["no"]))
-        self.use_prompt_combo.set({"config": text["config"], "yes": text["yes"], "no": text["no"]}[choice])
+        self.restore_button.configure(text=text["restore"]); self.refresh_button.configure(text=text["refresh"]); self.run_button.configure(text=text["run"]); self.clear_button.configure(text=text["clear"]); self.website_button.configure(text=text["website"]); self.exit_button.configure(text=text["exit"])
+        self.use_prompt_combo.configure(values=(text["yes"], text["no"]))
+        self.use_prompt_combo.set({"yes": text["yes"], "no": text["no"]}[choice])
         self.language_combo.set("日本語" if self.language == "ja" else "English")
         self._updating = False
         self._set_state("running" if self.running else "idle")
@@ -426,25 +564,20 @@ class SlideMovieApp:
         self._updating = True
         for name, variable in self.setting_vars.items():
             value = self.initial_options[name] if name in self.overrides and name in self.initial_options else self.settings.get(name)
-            variable.set("" if value is None else str(value))
+            variable.set(display_setting_value(name, value))
         for name, widget in (("prompt", self.prompt_text), ("prompt_separator", self.separator_text)):
             value = self.initial_options[name] if name in self.overrides and name in self.initial_options else self.settings.get(name) or ""
-            widget.delete("1.0", "end"); widget.insert("1.0", str(value)); widget.edit_modified(False)
-        if "tts_use_prompt" in self.overrides:
-            value = self.initial_options.get("use_prompt", self.settings["tts_use_prompt"])
-            choice = "yes" if value else "no"
-        else:
-            choice = "config"
+            value = display_prompt_separator(value) if name == "prompt_separator" else str(value)
+            widget.delete("1.0", "end"); widget.insert("1.0", value); widget.edit_modified(False)
+        value = self.initial_options.get("use_prompt", self.settings["tts_use_prompt"]) if "tts_use_prompt" in self.overrides else self.settings["tts_use_prompt"]
+        choice = "yes" if value else "no"
         text = TEXT[self.language]
-        self.use_prompt_var.set({"config": text["config"], "yes": text["yes"], "no": text["no"]}[choice])
+        self.use_prompt_var.set({"yes": text["yes"], "no": text["no"]}[choice])
         self._updating = False
         self._toggle_sub()
 
     def _mark_override(self, name):
         if not self._updating:
-            if name == "tts_use_prompt" and self._prompt_choice() == "config":
-                self.overrides.discard(name)
-                return
             self.overrides.add(name)
 
     def _mark_path_override(self, name):
@@ -454,10 +587,10 @@ class SlideMovieApp:
     def _prompt_choice(self):
         current = self.use_prompt_var.get()
         for language in TEXT.values():
-            for choice in ("config", "yes", "no"):
+            for choice in ("yes", "no"):
                 if current == language[choice]:
                     return choice
-        return "config"
+        return "yes" if self.settings.get("tts_use_prompt", True) else "no"
 
     def _text_changed(self, name, widget):
         if widget.edit_modified():
@@ -480,6 +613,33 @@ class SlideMovieApp:
         value = filedialog.askdirectory(initialdir=variable.get() or ".")
         if value:
             variable.set(value)
+
+    def _open_website(self):
+        webbrowser.open(official_website_url(self.language), new=2)
+
+    def _project_folder_paths(self):
+        return project_folder_paths(
+            self.source_var.get().strip(), self.project_var.get().strip(),
+            self.sub_var.get().strip() if self.sub_mode_var.get() else "",
+            self.output_var.get().strip())
+
+    def _open_source_folder(self):
+        source_dir, _output_dir = self._project_folder_paths()
+        self._open_folder(source_dir)
+
+    def _open_output_folder(self):
+        _source_dir, output_dir = self._project_folder_paths()
+        self._open_folder(output_dir)
+
+    def _open_folder(self, path):
+        from tkinter import messagebox
+        try:
+            opened = open_folder(path)
+        except OSError as exc:
+            messagebox.showerror(TEXT[self.language]["folder_not_found"], str(exc), parent=self.root)
+            return
+        if not opened:
+            messagebox.showerror(TEXT[self.language]["folder_not_found"], TEXT[self.language]["folder_not_found"], parent=self.root)
 
     def _status_path(self):
         source = self.source_var.get().strip()
@@ -517,11 +677,20 @@ class SlideMovieApp:
         for name in self.overrides:
             if name in self.setting_vars:
                 value = self.setting_vars[name].get()
-                overrides[name] = int(value) if name == "chunk_size" and value else value
+                if name in ("chunk_size", "video_fps") and value:
+                    overrides[name] = int(value)
+                elif name == "screen_size":
+                    overrides[name] = parse_screen_size(value)
+                elif name == "silence_sec":
+                    overrides[name] = float(value)
+                elif name == "split_chars":
+                    overrides[name] = parse_prompt_separator(value)
+                else:
+                    overrides[name] = value
             elif name == "prompt":
                 overrides[name] = self.prompt_text.get("1.0", "end-1c")
             elif name == "prompt_separator":
-                overrides[name] = self.separator_text.get("1.0", "end-1c")
+                overrides[name] = parse_prompt_separator(self.separator_text.get("1.0", "end-1c"))
             elif name == "tts_use_prompt":
                 overrides[name] = self._prompt_choice() == "yes"
         if "output_filename" in self.path_overrides:
@@ -533,15 +702,22 @@ class SlideMovieApp:
                 "debug": self.debug_var.get(), "overrides": overrides}
 
     def _validate(self):
-        options = self._options()
-        if not options["project_name"] or not options["source_dir"] or not (options["build_pptx"] or options["build_video"]): return False
-        if self.sub_mode_var.get() and not options["subproject_name"]: return False
-        if options["output_root"] and not os.path.isdir(options["output_root"]): return False
+        if not self.project_var.get().strip() or not self.source_var.get().strip() or not (self.pptx_var.get() or self.video_var.get()): return False
+        if self.sub_mode_var.get() and not self.sub_var.get().strip(): return False
+        if "output_root" in self.path_overrides and self.output_var.get().strip() and not os.path.isdir(self.output_var.get().strip()): return False
         chunk = self.setting_vars["chunk_size"].get().strip()
-        return not chunk or (chunk.isdigit() and int(chunk) > 0)
+        if chunk and (not chunk.isdigit() or int(chunk) <= 0):
+            return False
+        try:
+            parse_screen_size(self.setting_vars["screen_size"].get().strip())
+            return int(self.setting_vars["video_fps"].get().strip()) > 0 and float(self.setting_vars["silence_sec"].get().strip()) >= 0
+        except ValueError:
+            return False
 
     def start(self):
         from tkinter import messagebox
+        if not (self.pptx_var.get() or self.video_var.get()):
+            messagebox.showerror(TEXT[self.language]["action_required"], TEXT[self.language]["action_required"], parent=self.root); return
         if not self._validate():
             messagebox.showerror(TEXT[self.language]["invalid"], TEXT[self.language]["invalid"], parent=self.root); return
         self.running = True; self._set_controls("disabled"); self._set_state("running")
@@ -581,6 +757,7 @@ class SlideMovieApp:
                     event[1]["answer"] = self._ask_tts_conflict(event[1]["stored"], event[1]["current"])
                     if event[1]["answer"] == "use_status":
                         self._populate_stored_tts_config(event[1]["stored"])
+                        self._populate_stored_build_config(load_stored_build_config(self._status_path()))
                     event[1]["event"].set()
                 elif event[0] == "result":
                     self.running = False; self._set_controls("normal"); success = event[1] == "success"; self._set_state("success" if success else "failed")
@@ -615,26 +792,46 @@ class SlideMovieApp:
         return choice.get()
 
     def _populate_stored_tts_config(self, stored_tts):
-        """Reflect the recorded TTS configuration in the GUI after selecting it."""
+        """Reflect every recorded TTS value in the GUI after selecting it."""
         self._updating = True
         try:
             for status_name, movie_name in TTS_STATUS_FIELDS.items():
-                if status_name not in stored_tts:
-                    continue
-                value = stored_tts[status_name]
-                if movie_name in self.setting_vars:
-                    self.setting_vars[movie_name].set("" if value is None else str(value))
-                elif movie_name == "prompt":
-                    self.prompt_text.delete("1.0", "end")
-                    self.prompt_text.insert("1.0", "" if value is None else str(value))
-                    self.prompt_text.edit_modified(False)
-                elif movie_name == "prompt_separator":
-                    self.separator_text.delete("1.0", "end")
-                    self.separator_text.insert("1.0", "" if value is None else str(value))
-                    self.separator_text.edit_modified(False)
-                elif movie_name == "tts_use_prompt":
-                    self.use_prompt_var.set(TEXT[self.language]["yes"] if value else TEXT[self.language]["no"])
-                self.overrides.add(movie_name)
+                if status_name in stored_tts:
+                    SlideMovieApp._set_stored_tts_value(self, movie_name, stored_tts[status_name])
+        finally:
+            self._updating = False
+
+    def _set_stored_tts_value(self, movie_name, value):
+        """Set one status.json TTS value, including disabled multi-line fields."""
+        if movie_name in self.setting_vars:
+            self.setting_vars[movie_name].set(display_setting_value(movie_name, value))
+        elif movie_name == "prompt":
+            SlideMovieApp._set_text_value(self.prompt_text, value)
+        elif movie_name == "prompt_separator":
+            SlideMovieApp._set_text_value(self.separator_text, display_prompt_separator(value))
+        elif movie_name == "tts_use_prompt":
+            self.use_prompt_var.set(TEXT[self.language]["yes"] if value else TEXT[self.language]["no"])
+        self.overrides.add(movie_name)
+
+    @staticmethod
+    def _set_text_value(widget, value):
+        """Set a Text value even while the build has disabled the widget."""
+        state = str(widget.cget("state"))
+        if state == "disabled":
+            widget.configure(state="normal")
+        widget.delete("1.0", "end")
+        widget.insert("1.0", "" if value is None else str(value))
+        widget.edit_modified(False)
+        if state == "disabled":
+            widget.configure(state="disabled")
+
+    def _populate_stored_build_config(self, stored_build):
+        """Reflect every build setting available in status.json in the Settings tab."""
+        self._updating = True
+        try:
+            for name, value in build_settings_from_status(stored_build).items():
+                self.setting_vars[name].set(display_setting_value(name, value))
+                self.overrides.add(name)
         finally:
             self._updating = False
 

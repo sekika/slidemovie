@@ -94,7 +94,7 @@ The program will:
 
 ### GUI alternative
 
-Run `slidemovie -g`, select the source folder and project name, then select **Build video** and click **Run**. Use **PDF** as the video image source when building from a PDF instead of the PPTX file. The **Project status** area shows the recorded TTS settings and audio-file generation status.
+Run `slidemovie -g`, select the source folder and project name, then select **Build video** and click **Run**. In **Video source**, select **PDF** when building from a PDF instead of the PPTX file. The **Project status** area shows the recorded TTS settings and audio-file generation status.
 
 If the current TTS settings differ from the ones in `status.json`, choose whether to use the recorded `status.json` settings, overwrite them with the current GUI settings, or cancel the build. Using the recorded settings also updates the TTS input fields.
 

@@ -2,8 +2,10 @@ import json
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from slidemovie.gui import (apply_stored_tts_config, display_path_value, options_from_args,
-                            run_build, summarize_status)
+from slidemovie.gui import (apply_stored_tts_config, display_path_value, display_setting_value, open_folder,
+                            build_settings_from_status, load_stored_tts_config, official_website_url, options_from_args,
+                            display_prompt_separator, parse_prompt_separator, parse_screen_size, project_folder_paths, run_build, SlideMovieApp,
+                            summarize_status, TEXT)
 
 
 def _args(**changes):
@@ -36,6 +38,85 @@ def test_display_path_value_uses_config_unless_cli_path_is_explicit():
 
     assert display_path_value(initial, settings, set(), "output_root") == "/Volumes/back/slidemovie"
     assert display_path_value(initial, settings, {"output_root"}, "output_root") == ""
+
+
+def test_action_required_message_is_localized():
+    assert TEXT["ja"]["action_required"] == "実行内容を選んでください。"
+    assert TEXT["en"]["action_required"] == "Please select an action."
+
+
+def test_open_folder_rejects_a_missing_path(tmp_path):
+    assert open_folder(str(tmp_path / "missing")) is False
+
+
+def test_project_folder_paths_use_project_and_subproject_directories():
+    source, output = project_folder_paths("/work", "demo", "", "/output")
+    assert source == "/work"
+    assert output == "/output/demo"
+
+    source, output = project_folder_paths("/work", "parent", "child", "/output")
+    assert source == "/work/child"
+    assert output == "/output/parent/child"
+
+
+def test_official_website_url_matches_the_gui_language():
+    assert official_website_url("en") == "https://sekika.github.io/slidemovie/"
+    assert official_website_url("ja") == "https://sekika.github.io/slidemovie/ja/"
+
+
+def test_build_settings_from_status_includes_every_editable_build_value():
+    settings = build_settings_from_status({
+        "screen": {"width": 1920, "height": 1080},
+        "video": {"fps": 60}, "common": {"silence_sec": 1.5},
+        "image_pad_color": "black",
+    })
+
+    assert settings == {"screen_size": [1920, 1080], "video_fps": 60,
+                        "silence_sec": 1.5, "image_pad_color": "black"}
+    assert parse_screen_size("1920x1080") == [1920, 1080]
+
+
+def test_stored_tts_config_populates_all_text_inputs():
+    class Variable:
+        def __init__(self): self.value = None
+        def set(self, value): self.value = value
+
+    class Text:
+        def __init__(self): self.value = ""
+        def cget(self, _name): return "disabled"
+        def configure(self, **_kwargs): pass
+        def delete(self, *_args): self.value = ""
+        def insert(self, _index, value): self.value = value
+        def edit_modified(self, _value): pass
+
+    app = SimpleNamespace(
+        _updating=False, language="ja", overrides=set(),
+        setting_vars={"tts_provider": Variable()}, prompt_text=Text(),
+        separator_text=Text(), use_prompt_var=Variable(),
+    )
+    SlideMovieApp._populate_stored_tts_config(app, {
+        "provider": "openai", "prompt": "記録済みプロンプト",
+        "prompt_separator": "\n\n## 原稿\n", "use_prompt": True,
+    })
+
+    assert app.prompt_text.value == "記録済みプロンプト"
+    assert app.separator_text.value == "\\n\\n## 原稿\\n"
+    assert app.setting_vars["tts_provider"].value == "openai"
+    assert "prompt" in app.overrides
+    assert "prompt_separator" in app.overrides
+
+
+def test_prompt_separator_displays_newline_notation_and_parses_it_back():
+    assert display_prompt_separator("\n\n## 原稿\n") == "\\n\\n## 原稿\\n"
+    assert parse_prompt_separator("\\n\\n## 原稿\\n") == "\n\n## 原稿\n"
+    assert display_setting_value("split_chars", "。\n") == "。\\n"
+
+
+def test_old_status_tts_config_defaults_the_prompt_separator(tmp_path):
+    path = tmp_path / "status.json"
+    path.write_text(json.dumps({"tts_config": {"provider": "openai"}}), encoding="utf-8")
+
+    assert load_stored_tts_config(str(path))["prompt_separator"] == ""
 
 
 def test_summarize_status_is_tolerant_and_does_not_return_prompt(tmp_path):
