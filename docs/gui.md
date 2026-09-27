@@ -30,7 +30,7 @@ Use **Input files** and **Output files** under **Open folder** to open the actua
 
 ## Settings
 
-The **Settings** tab initially shows the effective values from `config.json`.
+The **Settings** tab initially shows the effective values from [`config.json`]({{ '/configuration/' | relative_url }}).
 
 - **TTS settings** include the provider, model, voice, prompt, prompt use, prompt separator, and narration splitting settings.
 - **Video format** includes `screen_size`, `image_pad_color`, and `video_fps`.
@@ -40,7 +40,7 @@ For the prompt separator and split characters, line breaks are shown as `\n` in 
 
 ## Project status and recorded settings
 
-The **Project status** panel summarizes `status.json`: the PPTX and image tasks, slide counts, audio-file generation counts, and recorded TTS provider/model/voice. It does not display narration text, prompts, hashes, or credentials.
+The **Project status** panel summarizes [`status.json`]({{ '/advanced-usage/' | relative_url }}): the PPTX and image tasks, slide counts, audio-file generation counts, and recorded TTS provider/model/voice. It does not display narration text, prompts, hashes, or credentials.
 
 When the current TTS settings differ from `status.json`, choose one of the following:
 
