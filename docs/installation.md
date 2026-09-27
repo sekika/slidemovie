@@ -72,24 +72,6 @@ Since no options are provided, this will result in an error. **This is expected 
 
 Next, please refer to the **[Configuration](../configuration/)** page. Edit the `tts_provider`, `tts_model`, and `tts_voice` settings in this file to select the Text-to-Speech model you wish to use.
 
-### Tkinter GUI
-
-If your Python installation includes Tkinter, launch the graphical interface with:
-
-```bash
-slidemovie -g
-```
-
-Existing options can be supplied with `-g` to prefill the corresponding fields, for example `slidemovie demo -g --video`.
-
-The **Project status** area summarizes `status.json`, including the PPTX and image tasks, recorded TTS provider/model/voice, and audio-file counts (generated, not generated, and failed). It never displays narration text, prompts, hashes, or credentials.
-
-If the TTS settings currently in use differ from the TTS settings recorded in `status.json`, the GUI asks you to choose one of the following:
-
-- **Use status.json settings** — continues with the recorded TTS settings and copies them into the TTS input fields.
-- **Overwrite with current settings** — continues with the values currently shown and updates the recorded TTS settings.
-- **Cancel** — does not start the build.
-
 ### 2. Configure API Credentials
 
 `slidemovie` uses `multiai-tts` for text-to-speech. API credentials are managed using the same configuration mechanism as [`multiai`](https://sekika.github.io/multiai/).
@@ -138,3 +120,21 @@ For more information, including the complete `multiai` configuration format, see
 > **Note:** Without valid credentials for the selected provider (`google`, `openai`, or `azure`), audio generation will fail.
 
 > **VOICEVOX:** If you select the `voicevox` provider, no API key is required. Instead, the [VOICEVOX engine](https://voicevox.hiroshiba.jp/) must be running locally (default `http://127.0.0.1:50021`) before you build. See [Configuration](../configuration/) for `tts_voice` (speaker style ID) and `tts_voicevox_url`.
+
+## 4. Use the GUI
+
+If your Python installation includes Tkinter, launch the graphical interface with:
+
+```bash
+slidemovie -g
+```
+
+Existing options can be supplied with `-g` to prefill the corresponding fields, for example `slidemovie demo -g --video`.
+
+The **Project status** area summarizes `status.json`, including the PPTX and image tasks, recorded TTS provider/model/voice, and audio-file counts (generated, not generated, and failed). It never displays narration text, prompts, hashes, or credentials.
+
+If the TTS settings currently in use differ from the TTS settings recorded in `status.json`, the GUI asks you to choose one of the following:
+
+- **Use status.json settings** — continues with the recorded TTS settings and copies them into the TTS input fields.
+- **Overwrite with current settings** — continues with the values currently shown and updates the recorded TTS settings.
+- **Cancel** — does not start the build.
