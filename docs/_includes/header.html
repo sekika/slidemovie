@@ -49,6 +49,34 @@
 </header>
 <style>
   @media screen and (max-width: 599px) {
+    .site-header .wrapper {
+      position: relative;
+    }
+
+    .site-nav {
+      position: static;
+      width: 100%;
+      border: 0;
+      background: transparent;
+      text-align: left;
+    }
+
+    .site-nav label {
+      position: absolute;
+      top: 10px;
+      right: 0;
+    }
+
+    .site-nav .trigger {
+      clear: both;
+      display: none;
+      margin-top: 8px;
+    }
+
+    .site-nav .nav-trigger:checked ~ .trigger {
+      display: block;
+    }
+
     .site-nav .trigger .page-link {
       display: block;
       margin: 0;
