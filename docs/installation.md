@@ -58,11 +58,27 @@ sudo apt install ffmpeg pandoc libreoffice poppler-utils imagemagick
 ```
 
 #### For Windows
-1.  **FFmpeg**: Download from [ffmpeg.org](https://ffmpeg.org/), extract it, and **add the `bin` folder to your System PATH**.
-2.  **Pandoc**: Download the installer from [pandoc.org](https://pandoc.org/).
-3.  **LibreOffice**: Install the standard desktop version. Ensure the command line `soffice` is in your PATH.
-4.  **Poppler**: Download binary release for Windows and add the `bin` folder to your PATH.
-5.  **ImageMagick**: Download the installer from [imagemagick.org](https://imagemagick.org/), and ensure `magick` (or `convert`) is in your PATH.
+On Windows, use Windows Package Manager (`winget`) to install the tools without downloading each archive or manually editing PATH. Open PowerShell and run:
+
+```powershell
+winget install --id Gyan.FFmpeg --exact
+winget install --id JohnMacFarlane.Pandoc --exact
+winget install --id TheDocumentFoundation.LibreOffice --exact
+winget install --id oschwartz10612.Poppler --exact
+winget install --id ImageMagick.ImageMagick --exact
+```
+
+If `winget` is unavailable, update or install **App Installer** from the Microsoft Store. After installation, close PowerShell and open a new window, then verify the commands:
+
+```powershell
+ffmpeg -version
+ffprobe -version
+pandoc --version
+pdftoppm -v
+magick -version
+```
+
+If a command is still unavailable after installing with `winget`, sign out of Windows and sign in again before checking once more.
 
 ## 3. Setup AI API Keys
 
