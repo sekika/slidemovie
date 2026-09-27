@@ -1,10 +1,11 @@
 import json
+import os
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from slidemovie.gui import (apply_stored_tts_config, display_path_value, display_setting_value, open_folder,
                             build_settings_from_status, load_stored_tts_config, official_website_url, options_from_args,
-                            display_prompt_separator, parse_prompt_separator, parse_screen_size, project_folder_paths, run_build, SlideMovieApp,
+                            display_prompt_separator, display_source_path, parse_prompt_separator, parse_screen_size, project_folder_paths, run_build, SlideMovieApp,
                             summarize_status, TEXT)
 
 
@@ -38,6 +39,11 @@ def test_display_path_value_uses_config_unless_cli_path_is_explicit():
 
     assert display_path_value(initial, settings, set(), "output_root") == "/Volumes/back/slidemovie"
     assert display_path_value(initial, settings, {"output_root"}, "output_root") == ""
+
+
+def test_display_source_path_expands_the_current_or_relative_directory():
+    assert display_source_path(".") == os.getcwd()
+    assert display_source_path("project") == os.path.join(os.getcwd(), "project")
 
 
 def test_action_required_message_is_localized():

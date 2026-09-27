@@ -177,6 +177,11 @@ def display_path_value(initial_options, settings, path_overrides, name):
     return settings.get(name) or ""
 
 
+def display_source_path(path):
+    """Expand the source directory so the GUI never presents an ambiguous '.'."""
+    return os.path.abspath(os.path.expanduser(path or "."))
+
+
 def open_folder(path):
     """Open an existing folder in the platform's file manager."""
     if not os.path.isdir(path):
@@ -383,7 +388,7 @@ class SlideMovieApp:
     def _make_variables(self):
         tk = self.tk
         initial = self.initial_options
-        self.source_var = tk.StringVar(value=initial.get("source_dir", "."))
+        self.source_var = tk.StringVar(value=display_source_path(initial.get("source_dir")))
         self.project_var = tk.StringVar(value=initial.get("project_name", ""))
         self.sub_var = tk.StringVar(value=initial.get("subproject_name", ""))
         self.sub_mode_var = tk.BooleanVar(value=bool(initial.get("subproject_name")))
