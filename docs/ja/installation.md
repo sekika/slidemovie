@@ -10,12 +10,22 @@ parent: はじめに
 
 動画を生成する前に、Python パッケージといくつかの外部依存ツールをセットアップする必要があります。
 
+## 前提条件: Python 3
+
+`slidemovie` には Python 3.8 以降が必要です。先に使用している OS 向けの Python 3 をインストールし、次のコマンドで利用できることを確認してください。
+
+```bash
+python3 --version
+```
+
+Python 2 と Python 3 が区別される環境では、以降のコマンドも `python3 -m pip` を使用してください。
+
 ## 1. Python パッケージのインストール
 
 最も簡単な方法は pip を使うことです。ターミナル（またはコマンドプロンプト）を開き、以下を実行してください。
 
 ```bash
-pip install slidemovie
+python3 -m pip install slidemovie
 ```
 
 これにより、`multiai-tts` や `pptxtoimages` を含む必要な Python ライブラリが自動的にインストールされます。

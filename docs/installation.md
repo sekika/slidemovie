@@ -9,12 +9,22 @@ parent: Introduction
 
 Before you can generate videos, you need to set up the Python package and several external dependencies.
 
+## Prerequisite: Python 3
+
+`slidemovie` requires Python 3.8 or later. Install Python 3 for your operating system before continuing, then confirm it is available:
+
+```bash
+python3 --version
+```
+
+Use `python3 -m pip` in the following commands when your system distinguishes Python 3 from an older Python installation.
+
 ## 1. Install the Python Package
 
 The easiest way to install `slidemovie` is via pip. Open your terminal or command prompt and run:
 
 ```bash
-pip install slidemovie
+python3 -m pip install slidemovie
 ```
 
 This will automatically install the necessary Python dependencies, including `multiai-tts` and `pptxtoimages`.
