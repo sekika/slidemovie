@@ -10,7 +10,7 @@ To check your installed version, run: `python -m pip show slidemovie`. To upgrad
 
 ## Specification
 
-Here is a list of specification documents detailing the changes made in each version. These specifications were used when making code changes with Claude Code, so minor fixes made without using Claude Code are not included. Please note that the specifications are written in Japanese.
+Here is a list of specification documents detailing the changes made in each version. These specifications were used when making code changes with Claude Code or Codex, so minor fixes made without using either are not included. Please note that the specifications are written in Japanese.
 
 {% assign specs = site.pages | where_exp: "p", "p.path contains 'update/update-'" | sort: "version" | reverse %}
 
