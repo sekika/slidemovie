@@ -18,6 +18,7 @@
     {%- endif -%}
 
     <a class="site-title" rel="author" href="{{ home_url | relative_url }}">
+      <img class="site-logo" src="{{ '/downloads/slidemovie-icon.svg' | relative_url }}" alt="" aria-hidden="true">
       {{ site.title | escape }}
     </a>
 
@@ -48,6 +49,13 @@
   </div>
 </header>
 <style>
+  .site-title .site-logo {
+    width: 28px;
+    height: 28px;
+    margin-right: 7px;
+    vertical-align: -5px;
+  }
+
   @media screen and (max-width: 599px) {
     .site-header .wrapper {
       position: relative;
