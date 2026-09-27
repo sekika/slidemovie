@@ -89,4 +89,4 @@ chmod +x create-slidemovie-app.command
 ./create-slidemovie-app.command
 ```
 
-`~/Applications/SlideMovie.app` が作成され、開かれます。Mac のすべての利用者から開けるようにするには `/Applications` へ移動します。スクリプトは実行時の `slidemovie` コマンドのパスを記録するため、使用する Python 環境を確認したい場合は事前に `which slidemovie` を実行してください。
+`~/Applications/SlideMovie.app` が作成され、開かれます。アプリは、この作成スクリプトを実行したフォルダーを `--source-dir` で明示指定し、ソースフォルダーの初期値として開きます。使用したいフォルダーでスクリプトを実行してください。Mac のすべての利用者から開けるようにするには `/Applications` へ移動します。スクリプトは実行時の `slidemovie` コマンドのパスを記録するため、使用する Python 環境を確認したい場合は事前に `which slidemovie` を実行してください。

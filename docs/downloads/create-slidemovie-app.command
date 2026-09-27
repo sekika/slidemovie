@@ -3,6 +3,7 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"
+working_dir="$PWD"
 slidemovie_bin="${SLIDEMOVIE_BIN:-$(command -v slidemovie || true)}"
 app_dir="$HOME/Applications/SlideMovie.app"
 contents_dir="$app_dir/Contents"
@@ -32,10 +33,11 @@ cat > "$contents_dir/Info.plist" <<EOF
 </dict></plist>
 EOF
 
-cat > "$contents_dir/MacOS/SlideMovie" <<EOF
-#!/bin/bash
-exec "$slidemovie_bin" -g
-EOF
+{
+  printf '%s\n' '#!/bin/bash'
+  printf 'cd %q\n' "$working_dir"
+  printf 'exec %q -g --source-dir %q\n' "$slidemovie_bin" "$working_dir"
+} > "$contents_dir/MacOS/SlideMovie"
 chmod +x "$contents_dir/MacOS/SlideMovie"
 
 open "$app_dir"
