@@ -57,6 +57,10 @@ This will read `demo.md` and create `demo.pptx`.
 
 *   **Note**: At this stage, the PowerPoint file will look very plain (white background, black text). This is normal.
 
+### GUI alternative
+
+Run `slidemovie -g`, choose the folder containing `demo.md` as **Source folder**, and enter `demo` as **Project name**. Select **Build PPTX**, then click **Run**. This performs the same draft-generation step without entering the `-p` command.
+
 ## Step 3: Edit Slide Design
 
 This is the only manual step, allowing you to add human creativity.
@@ -87,6 +91,12 @@ The program will:
 2.  Convert the PowerPoint slides into images (PNG).
 3.  Combine them into individual slide videos.
 4.  Stitch them all together into one final movie.
+
+### GUI alternative
+
+Run `slidemovie -g`, select the source folder and project name, then select **Build video** and click **Run**. Use **PDF** as the video image source when building from a PDF instead of the PPTX file. The **Project status** area shows the recorded TTS settings and audio-file generation status.
+
+If the current TTS settings differ from the ones in `status.json`, choose whether to use the recorded `status.json` settings, overwrite them with the current GUI settings, or cancel the build. Using the recorded settings also updates the TTS input fields.
 
 ### Output Location
 The final video will be saved in:

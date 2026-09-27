@@ -41,6 +41,7 @@ def main():
     # --- Positional Arguments ---
     parser.add_argument(
         "project_name",
+        nargs="?",
         help="Project Name (ID). If in subproject mode (--sub), this is the parent project name."
     )
 
@@ -117,6 +118,24 @@ def main():
         action="store_true",
         help="Enable debug mode (Verbose logging, etc)."
     )
+    parser.add_argument(
+        "-g", "--gui",
+        action="store_true",
+        help="Open the Tkinter GUI. Other supplied options become its initial values."
+    )
+
+    args = parser.parse_args()
+
+    if args.gui:
+        # Import lazily: normal CLI usage must not require Tkinter.
+        from . import gui
+        exit_code = gui.main(gui.options_from_args(args))
+        if isinstance(exit_code, int) and exit_code != 0:
+            sys.exit(exit_code)
+        return
+
+    if not args.project_name:
+        parser.error("project_name is required unless --gui is specified")
 
     # 1. Initialize Movie instance (Load configuration files)
     try:
@@ -128,8 +147,6 @@ def main():
     except Exception as e:
         logger.error(f"Failed to initialize Movie class: {e}")
         sys.exit(1)
-
-    args = parser.parse_args()
 
     # Exit if no action is specified
     if not args.pptx and not args.video:

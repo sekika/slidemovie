@@ -21,6 +21,7 @@
 ## ✨ Features
 
 *   **Markdown-Based**: Write your slide content and narration script in a single text file.
+*   **CLI, GUI, and API**: Build from the command line, the Tkinter GUI (`slidemovie -g`), or Python code via the `Movie` API.
 *   **AI Narration**: Automatically generates natural voiceovers using **Google Gemini**, **OpenAI**, **Azure**, or **VOICEVOX** (via `multiai-tts`).
 *   **PowerPoint Integration**: Use PowerPoint's AI "Designer" to create professional visuals instantly.
 *   **No Video Editing**: Audio and visuals are automatically synchronized.
@@ -41,6 +42,16 @@ pip install slidemovie
 ```
 
 *Note: You also need to install **FFmpeg**, **Pandoc**, **LibreOffice**, and **Poppler**, and set up your **AI API Key** (Google or OpenAI). See the [documentation](https://sekika.github.io/slidemovie/installation/) for details.*
+
+To use the Tkinter interface instead of the command line, run:
+
+```bash
+slidemovie -g
+```
+
+Any options supplied with `-g` are used as the GUI's initial values, for example `slidemovie demo -g --video`.
+
+The GUI summarizes `status.json`, including audio-file generation status. When its recorded TTS settings differ from the current settings, choose whether to use the recorded settings, overwrite them with the current settings, or cancel the build.
 
 ### 2. Create a Project
 

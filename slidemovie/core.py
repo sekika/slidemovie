@@ -1284,8 +1284,15 @@ class Movie():
                 "Generating audio with different settings may result in inconsistent audio in the video.")
 
             while True:
-                choice = input(
-                    "Select action: 1) Ignore and Continue (Overwrite config)  2) Abort [1/2]: ").strip()
+                confirm = getattr(self, "confirm_tts_config_change", None)
+                if callable(confirm):
+                    # GUI frontends can provide a callback so this confirmation
+                    # never blocks on a terminal's standard input.  Keeping the
+                    # fallback preserves the CLI's long-standing behaviour.
+                    choice = "1" if confirm(stored_tts, current_tts) else "2"
+                else:
+                    choice = input(
+                        "Select action: 1) Ignore and Continue (Overwrite config)  2) Abort [1/2]: ").strip()
                 if choice == '1':
                     logger.info(
                         "Applying new settings and continuing. Updating state file.")

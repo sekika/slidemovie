@@ -22,6 +22,18 @@ def test_cli_help(capsys):
         # Verify usage/help text is printed
         assert "usage:" in captured.err or "usage:" in captured.out
 
+def test_cli_gui_starts_without_project_name(mocker):
+    """-g hands CLI arguments to the GUI without instantiating Movie."""
+    gui_main = mocker.patch("slidemovie.gui.main")
+    with patch.object(sys, "argv", ["slidemovie", "-g", "--video", "--tts-provider", "openai"]):
+        cli.main()
+
+    initial = gui_main.call_args[0][0]
+    assert initial["project_name"] == ""
+    assert initial["build_video"] is True
+    assert initial["tts_provider"] == "openai"
+    assert "tts_provider" in initial["overrides"]
+
 def test_cli_pptx_mode(mock_movie_class):
     """Test the --pptx option."""
     test_args = ['slidemovie', 'MyProject', '--pptx']

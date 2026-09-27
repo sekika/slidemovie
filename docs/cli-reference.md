@@ -22,9 +22,18 @@ slidemovie [PROJECT_NAME] [OPTIONS]
     *   The tool looks for `{PROJECT_NAME}.md` in the source directory.
     *   If using Subproject Mode (`--sub`), this argument specifies the **Parent** directory name (used for output categorization).
 
+    When `-g` / `--gui` is supplied, `PROJECT_NAME` is optional because it can be entered in the GUI.
+
 ## Options
 
-### Mode Flags (At least one is required)
+### GUI
+
+*   **`-g`, `--gui`**
+    *   **Action**: Opens the Tkinter graphical interface instead of starting a build from the command line.
+    *   **Behavior**: `PROJECT_NAME`, mode flags, paths, and TTS options supplied on the command line become initial GUI values. The build starts only after you select an action and click **Run** in the GUI.
+    *   **Requirements**: Tkinter must be available in the Python installation. The GUI supports standard and subproject layouts, PPTX or PDF image sources, and temporary TTS overrides.
+
+### Mode Flags (At least one is required unless `--gui` is used)
 
 *   **`-p`, `--pptx`**
     *   **Action**: Converts the source Markdown file into a PowerPoint (`.pptx`) file.
