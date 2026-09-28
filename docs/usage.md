@@ -21,6 +21,10 @@ Create a new file named `project_name.md`. This file serves as both your slide c
 
 ### File Example (`demo.md`)
 
+When using Notepad on Windows, switch to **Markdown syntax** view from the **View** menu or the toggle in the status bar before pasting. Pasting a web code block while formatted Markdown view is active can cause Notepad to add `\#` or `\-` to preserve headings and lists as literal text. The formatted view hides those backslashes, so the saved file can look correct while not being valid input for slidemovie.
+
+For an unchanged copy, [download demo.md]({{ site.baseurl }}/assets/en/demo.md) and save it in your working folder.
+
 ```markdown
 # Introduction to Slidemovie
 
