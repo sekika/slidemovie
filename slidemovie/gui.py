@@ -194,7 +194,7 @@ TEXT = {
         "overflow": "On no split", "screen_size": "Screen size", "image_pad_color": "Image padding color", "video_fps": "Video FPS", "silence_sec": "Silence (seconds)", "restore": "Restore settings", "status": "Project status",
         "save_local": "Save to local config", "saved_local": "Saved local config: ", "save_failed": "Could not save local config: ",
         "run": "Run", "clear": "Clear log", "website": "Website", "feedback": "Feedback", "copy_info": "Copy information", "info_copied": "Copied to clipboard", "collecting_info": "Collecting environment information…", "exit": "Exit",
-        "idle": "Idle", "running": "Running", "success": "Succeeded", "failed": "Failed",
+        "running": "Running", "success": "Succeeded", "failed": "Failed",
         "yes": "Use", "no": "Do not use",
         "missing": "status.json has not been created.", "no_project": "Enter a project name to view status.",
         "invalid": "Please correct the input.", "action_required": "Please select an action.", "folder_not_found": "Folder does not exist.", "done": "Build completed.",
@@ -229,7 +229,7 @@ TEXT = {
         "overflow": "分割不可時", "screen_size": "画面サイズ", "image_pad_color": "画像余白色", "video_fps": "動画 FPS", "silence_sec": "無音時間（秒）", "restore": "設定から戻す", "status": "プロジェクトの状態",
         "save_local": "ローカル設定に保存", "saved_local": "ローカル設定を保存しました: ", "save_failed": "ローカル設定を保存できません: ",
         "run": "実行", "clear": "ログを消去", "website": "公式サイト", "feedback": "フィードバック", "copy_info": "情報をクリップボードにコピー", "info_copied": "クリップボードにコピーしました", "collecting_info": "環境情報を収集中…", "exit": "終了",
-        "idle": "待機中", "running": "実行中", "success": "成功", "failed": "失敗",
+        "running": "実行中", "success": "成功", "failed": "失敗",
         "yes": "使用する", "no": "使用しない",
         "missing": "status.json はまだ作成されていません。", "no_project": "状態を表示するにはプロジェクト名を入力してください。",
         "invalid": "入力内容を確認してください。", "action_required": "実行内容を選んでください。", "folder_not_found": "フォルダーが存在しません。", "done": "ビルドが完了しました。",
@@ -614,6 +614,7 @@ class SlideMovieApp:
         self.events = queue.Queue()
         self.worker = None
         self.running = False
+        self.run_state = None
         self.initial_options = initial_options or {"overrides": set()}
         self.language = detect_language()
         self._updating = False
@@ -748,14 +749,17 @@ class SlideMovieApp:
         self.video_check = ttk.Checkbutton(self.action_frame, variable=self.video_var, command=self._update_run_state); self.video_check.grid(row=0, column=1, padx=4)
         self.interactive_widgets.extend((self.pptx_check, self.video_check))
         self.source_frame = ttk.LabelFrame(self.project_tab); self.source_frame.grid(row=3, column=0, sticky="ew", pady=(8, 0))
-        self.source_frame.columnconfigure(1, weight=1)
+        self.source_frame.columnconfigure(2, weight=1)
         self.pdf_check = ttk.Checkbutton(self.source_frame, variable=self.pdf_var, command=self._update_run_state)
         self.pdf_check.grid(row=0, column=0, padx=4, pady=2, sticky="w")
         self.interactive_widgets.append(self.pdf_check)
         self.run_button = ttk.Button(self.source_frame, command=self.start, state="disabled")
         self.run_button.grid(row=1, column=0, padx=4, pady=(4, 2), sticky="w")
-        self.run_check_label = ttk.Label(self.source_frame, textvariable=self.run_check_var, wraplength=max(250, width - 180))
-        self.run_check_label.grid(row=1, column=1, padx=4, pady=(4, 2), sticky="w")
+        self.run_state_var = tk.StringVar()
+        self.run_state_label = ttk.Label(self.source_frame, textvariable=self.run_state_var)
+        self.run_state_label.grid(row=1, column=1, padx=4, pady=(4, 2), sticky="w")
+        self.run_check_label = ttk.Label(self.source_frame, textvariable=self.run_check_var, wraplength=max(250, width - 260))
+        self.run_check_label.grid(row=1, column=2, padx=4, pady=(4, 2), sticky="w")
         self.settings_canvas = tk.Canvas(self.settings_tab, highlightthickness=0)
         settings_scroll = ttk.Scrollbar(self.settings_tab, orient="vertical", command=self.settings_canvas.yview)
         self.settings_canvas.configure(yscrollcommand=settings_scroll.set)
@@ -837,8 +841,6 @@ class SlideMovieApp:
         self.language_combo = ttk.Combobox(controls, state="readonly", values=("日本語", "English"), width=10); self.language_combo.grid(row=0, column=0, sticky="w")
         self.language_combo.bind("<<ComboboxSelected>>", self._change_language)
         self.exit_button = ttk.Button(controls, command=self.close); self.exit_button.grid(row=0, column=1, padx=4)
-        self.state_label = ttk.Label(controls); self.state_label.grid(row=0, column=2, sticky="e", padx=8)
-        controls.columnconfigure(2, weight=1)
         self.interactive_widgets.append(self.language_combo)
         for name, var in self.setting_vars.items():
             var.trace_add("write", lambda *_args, key=name: self._mark_override(key))
@@ -896,7 +898,7 @@ class SlideMovieApp:
         self.use_prompt_combo.set({"yes": text["yes"], "no": text["no"]}[choice])
         self.language_combo.set("日本語" if self.language == "ja" else "English")
         self._updating = False
-        self._set_state("running" if self.running else "idle")
+        self._set_state("running" if self.running else self.run_state)
         if not self.running:
             self._update_run_state()
 
@@ -970,6 +972,8 @@ class SlideMovieApp:
         self._input_changed()
 
     def _input_changed(self):
+        # The displayed result applies to the previous project only.
+        self._set_state(None)
         self.refresh_status()
         self._update_run_state()
 
@@ -1362,7 +1366,8 @@ class SlideMovieApp:
         self.log.configure(state="normal"); self.log.delete("1.0", "end"); self.log.configure(state="disabled")
 
     def _set_state(self, state):
-        self.state_label.configure(text=TEXT[self.language][state])
+        self.run_state = state
+        self.run_state_var.set(TEXT[self.language][state] if state else "")
 
     def _set_controls(self, state):
         for widget in self.interactive_widgets + [self.run_button, self.clear_button, self.exit_button]:
