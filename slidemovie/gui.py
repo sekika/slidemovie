@@ -126,6 +126,13 @@ def _tool_executable(command):
     return None
 
 
+def _background_process_kwargs():
+    """Prevent console windows for diagnostic commands launched by pythonw."""
+    if os.name == "nt":
+        return {"creationflags": subprocess.CREATE_NO_WINDOW}
+    return {}
+
+
 def collect_about_info(tk_version):
     """Collect non-sensitive runtime details useful in a support report."""
     lines = [
@@ -162,19 +169,22 @@ def collect_about_info(tk_version):
         ("FFmpeg", "ffmpeg", "-version"),
         ("FFprobe", "ffprobe", "-version"),
         ("Pandoc", "pandoc", "--version"),
-        ("LibreOffice", "soffice", "--version"),
+        # ``--headless`` prevents LibreOffice from creating an application
+        # window merely to report its version on Windows.
+        ("LibreOffice", "soffice", "--headless", "--version"),
         ("Poppler (pdftoppm)", "pdftoppm", "-v"),
         ("ImageMagick", "magick", "-version"),
     )
-    for label, command, argument in tools:
+    for label, command, *arguments in tools:
         executable = _tool_executable(command)
         if not executable:
             lines.append(f"{label}: not found")
             continue
         try:
             result = subprocess.run(
-                [executable, argument], capture_output=True, text=True,
+                [executable, *arguments], capture_output=True, text=True,
                 check=False, timeout=5, errors="replace",
+                **_background_process_kwargs(),
             )
             output = (result.stdout or result.stderr or "").strip()
             detail = output.splitlines()[0] if output else f"exit status {result.returncode}"
@@ -190,6 +200,7 @@ def collect_about_info(tk_version):
                 result = subprocess.run(
                     [executable, "-version"], capture_output=True, text=True,
                     check=False, timeout=5, errors="replace",
+                    **_background_process_kwargs(),
                 )
                 output = (result.stdout or result.stderr or "").strip()
                 detail = output.splitlines()[0] if output else f"exit status {result.returncode}"
