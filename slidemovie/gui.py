@@ -1560,6 +1560,26 @@ def main(initial_options=None):
     # laid out. Mapping it while it is still empty can leave a white surface
     # until the next pointer-driven redraw.
     root.withdraw()
+    language = detect_language()
+    splash = tk.Toplevel(root)
+    splash.title("slidemovie")
+    splash.resizable(False, False)
+    splash_label = tk.Label(
+        splash,
+        text="slidemovie\n\n" + (
+            "起動しています…" if language == "ja" else "Starting…"),
+        padx=48,
+        pady=28,
+        justify="center",
+    )
+    splash_label.pack()
+    splash.update_idletasks()
+    splash_width, splash_height = splash.winfo_width(), splash.winfo_height()
+    splash_x = (splash.winfo_screenwidth() - splash_width) // 2
+    splash_y = (splash.winfo_screenheight() - splash_height) // 2
+    splash.geometry(f"+{splash_x}+{splash_y}")
+    splash.lift()
+    splash.update()
     events = queue.Queue()
     handler = QueueLogHandler(events)
     handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
@@ -1568,6 +1588,8 @@ def main(initial_options=None):
         app = SlideMovieApp(root, initial_options)
         # Reuse the handler's queue for the app after construction.
         app.events = events
+        splash.destroy()
+        splash = None
         # Map the complete UI only after geometry has settled.
         root.update_idletasks()
         root.deiconify()
@@ -1576,9 +1598,13 @@ def main(initial_options=None):
         root.update()
         root.mainloop()
     except SystemExit as exc:
+        if splash is not None and splash.winfo_exists():
+            splash.destroy()
         print(f"Could not initialize slidemovie: {exc}", file=sys.stderr)
         return 1
     except Exception as exc:
+        if splash is not None and splash.winfo_exists():
+            splash.destroy()
         print(f"Could not initialize slidemovie GUI: {exc}", file=sys.stderr)
         return 1
     finally:
