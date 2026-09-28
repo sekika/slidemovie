@@ -148,10 +148,10 @@ python3 -m slidemovie.cli --init-config
 
 `slidemovie` は音声合成に `multiai-tts` を使用しています。API認証情報は [`multiai`](https://sekika.github.io/multiai/) と同じ方法で設定します。
 
-認証情報は `multiai` の設定ファイルに保存できます。`multiai` は `~/.multiai`、続いて `./.multiai` の設定を読み込み、プロジェクト側の設定が優先されます。Windows の PowerShell では、次のコマンドでユーザー設定ファイルをメモ帳で開いて編集できます。
+認証情報は `multiai` の設定ファイルに保存できます。`multiai` は `~/.multiai`、続いて `./.multiai` の設定を読み込み、プロジェクト側の設定が優先されます。Windows の PowerShell では、次のコマンドでユーザー設定ファイルをメモ帳で開いて編集できます。`$HOME` はユーザーのホームディレクトリ（例: `C:\Users\seki`）を表します。
 
 ```powershell
-notepad ~/.multiai
+notepad "$HOME\.multiai"
 ```
 
 macOS では、次のコマンドで TextEdit を使って開けます。

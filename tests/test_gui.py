@@ -67,6 +67,31 @@ def test_status_project_id_is_a_default_only_with_its_matching_markdown(tmp_path
     assert default_project_name_from_status(str(tmp_path)) == "demo"
 
 
+def test_source_change_uses_the_valid_status_project_default(tmp_path):
+    (tmp_path / "status.json").write_text(
+        json.dumps({"project_id": "demo"}), encoding="utf-8")
+    (tmp_path / "demo.md").write_text("# Demo", encoding="utf-8")
+
+    class Variable:
+        def __init__(self, value):
+            self.value = value
+
+        def get(self):
+            return self.value
+
+        def set(self, value):
+            self.value = value
+
+    app = SimpleNamespace(
+        initial_options={"project_name": None}, source_var=Variable(str(tmp_path)),
+        project_var=Variable("old-project"), _input_changed=MagicMock(),
+    )
+    SlideMovieApp._source_changed(app)
+
+    assert app.project_var.get() == "demo"
+    app._input_changed.assert_called_once()
+
+
 def test_pptx_display_status_distinguishes_generated_present_and_missing(tmp_path):
     pptx = tmp_path / "demo.pptx"
     assert pptx_display_status("ja", {"status": "generated"}, str(pptx)) == "未生成"

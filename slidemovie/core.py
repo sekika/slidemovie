@@ -879,6 +879,43 @@ class Movie():
             logger.error("No Slide IDs found.")
             return
 
+        # Every Markdown slide is part of the final movie.  A user can delete
+        # an intermediate MP4 while its PNG/WAV inputs remain.  Recover that
+        # normal, repairable case here as well as in build_all(), so this
+        # method can never concatenate only the clips that happen to exist.
+        def missing_clips():
+            return [
+                slide_id for slide_id in slide_ids
+                if not os.path.isfile(os.path.join(self.movie_dir, f"{slide_id}.mp4"))
+            ]
+
+        missing_slide_ids = missing_clips()
+        if missing_slide_ids:
+            logger.info(
+                "Rebuilding missing slide video files: %s",
+                ", ".join(missing_slide_ids),
+            )
+            self.build_slide_videos()
+            # build_slide_videos records video state, so use its freshly
+            # saved state before deciding whether concatenation can proceed.
+            state = self._load_audio_state()
+            missing_slide_ids = missing_clips()
+
+        # If inputs themselves are absent (for example an external
+        # ``video-file`` source was deleted), leave a clear failed state.
+        if missing_slide_ids:
+            state["final_movie"] = {
+                "status": "failed",
+                "missing_slides": missing_slide_ids,
+            }
+            state["last_checked"] = self._now()
+            self._save_audio_state(state)
+            logger.error(
+                "Cannot create final video; MP4 files are missing for Markdown slides: %s",
+                ", ".join(missing_slide_ids),
+            )
+            return
+
         # 1. Calculate source hash
         current_source_hash = self._calculate_source_hash(slide_ids)
 
@@ -895,22 +932,13 @@ class Movie():
         # 3. Create concatenation list
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             concat_list = f.name
-            found_count = 0
             for slide_id in slide_ids:
                 mp4_path = os.path.join(self.movie_dir, f"{slide_id}.mp4")
-                if os.path.isfile(mp4_path):
-                    # ffmpeg concat demuxer format
-                    # Use abspath for Windows path compatibility
-                    unix_path = os.path.abspath(mp4_path).replace("\\", "/")
-                    f.write(f"file '{unix_path}'\n")
-                    found_count += 1
-                else:
-                    logger.warning(f"MP4 not found: {mp4_path} (Skipping)")
-
-        if found_count == 0:
-            logger.error("No MP4s found for concatenation.")
-            os.remove(concat_list)
-            return
+                # ffmpeg concat demuxer format.  This has already been
+                # checked above, so the list always represents all slides.
+                # Use abspath for Windows path compatibility.
+                unix_path = os.path.abspath(mp4_path).replace("\\", "/")
+                f.write(f"file '{unix_path}'\n")
 
         logger.info("Starting final video concatenation...")
 
@@ -937,7 +965,7 @@ class Movie():
                 "file_name": os.path.basename(self.video_file),
                 "generated_at": self._now(),
                 "duration_min": duration_sec / 60.0,
-                "slides": found_count,
+                "slides": len(slide_ids),
                 "source_hash": current_source_hash
             }
 

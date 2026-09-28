@@ -170,6 +170,29 @@ Note A
         assert slides[1]['video_file'] == 'demo.mp4'
 
 class TestBuildLogic:
+    def test_final_video_rejects_a_missing_markdown_slide_clip(self, movie, tmp_path, mocker):
+        """A partial set of slide MP4s must never become the final movie."""
+        movie.movie_dir = str(tmp_path)
+        movie.video_file = str(tmp_path / "demo.mp4")
+        (tmp_path / "demo-01.mp4").touch()
+        state = {"final_movie": {"status": "generated"}}
+        mocker.patch.object(movie, "_load_audio_state", return_value=state)
+        mocker.patch.object(movie, "_extract_slides_list", return_value=[
+            {"id": "demo-01"}, {"id": "demo-02"},
+        ])
+        rebuild = mocker.patch.object(movie, "build_slide_videos")
+        save_state = mocker.patch.object(movie, "_save_audio_state")
+        run = mocker.patch("subprocess.run")
+
+        movie.build_final_video()
+
+        assert state["final_movie"] == {
+            "status": "failed", "missing_slides": ["demo-02"],
+        }
+        rebuild.assert_called_once()
+        save_state.assert_called_once_with(state)
+        run.assert_not_called()
+
     def test_windows_uses_magick_not_the_system_convert_command(self, movie, mocker):
         """Windows convert.exe is not ImageMagick and must never be selected."""
         mocker.patch("slidemovie.core.sys.platform", "win32")

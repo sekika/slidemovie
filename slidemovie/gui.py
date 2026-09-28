@@ -710,7 +710,11 @@ class SlideMovieApp:
         self.use_prompt_var.trace_add("write", lambda *_: self._mark_override("tts_use_prompt"))
         self.prompt_text.bind("<<Modified>>", lambda _event: self._text_changed("prompt", self.prompt_text))
         self.separator_text.bind("<<Modified>>", lambda _event: self._text_changed("prompt_separator", self.separator_text))
-        for variable in (self.source_var, self.project_var, self.sub_var):
+        # A source-directory change can identify a different project through
+        # that directory's status.json.  It therefore needs a dedicated
+        # handler instead of merely refreshing the visible status text.
+        self.source_var.trace_add("write", lambda *_: self._source_changed())
+        for variable in (self.project_var, self.sub_var):
             variable.trace_add("write", lambda *_: self._input_changed())
         self.output_var.trace_add("write", lambda *_: self._mark_path_override("output_root"))
         self.filename_var.trace_add("write", lambda *_: self._mark_path_override("output_filename"))
@@ -812,6 +816,21 @@ class SlideMovieApp:
 
     def _sub_changed(self):
         self._toggle_sub()
+        self._input_changed()
+
+    def _source_changed(self):
+        """Adopt a valid status.json project ID whenever its folder is chosen.
+
+        A command-line project name remains intentional and must not be
+        replaced.  Otherwise, changing Source folder should behave like the
+        initial GUI setup: a status file is useful only if its project ID has
+        the corresponding Markdown file beside it.
+        """
+        if not self.initial_options.get("project_name"):
+            project_name = default_project_name_from_status(
+                display_source_path(self.source_var.get()))
+            if project_name and self.project_var.get() != project_name:
+                self.project_var.set(project_name)
         self._input_changed()
 
     def _input_changed(self):

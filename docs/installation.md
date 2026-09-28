@@ -147,10 +147,10 @@ Next, please refer to the **[Configuration](../configuration/)** page. Edit the 
 
 `slidemovie` uses `multiai-tts` for text-to-speech. API credentials are managed using the same configuration mechanism as [`multiai`](https://sekika.github.io/multiai/).
 
-Credentials can be stored in the `multiai` settings file. `multiai` reads settings from `~/.multiai` and then from `./.multiai`, with project-level settings taking precedence. On Windows, open the user settings file in Notepad from PowerShell:
+Credentials can be stored in the `multiai` settings file. `multiai` reads settings from `~/.multiai` and then from `./.multiai`, with project-level settings taking precedence. On Windows, open the user settings file in Notepad from PowerShell. `$HOME` expands to the user home directory (for example, `C:\Users\seki`):
 
 ```powershell
-notepad ~/.multiai
+notepad "$HOME\.multiai"
 ```
 
 On macOS, open it in TextEdit:
