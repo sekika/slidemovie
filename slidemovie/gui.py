@@ -762,7 +762,9 @@ class SlideMovieApp:
         self.root.protocol("WM_DELETE_WINDOW", self.close)
         self.root.after(100, self._poll_events)
         self.root.after(250, self._poll_run_preflight)
-        self._start_about_info_collection()
+        # Let the window paint before probing external programs.  On Windows
+        # the first process lookup can noticeably delay initial presentation.
+        self.root.after(500, self._start_about_info_collection)
 
     @staticmethod
     def _movie_factory():
