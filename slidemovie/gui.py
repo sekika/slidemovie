@@ -133,6 +133,25 @@ def _background_process_kwargs():
     return {}
 
 
+def _windows_libreoffice_detail(executable):
+    """Read LibreOffice's installed version without launching soffice.exe.
+
+    ``soffice.exe --version`` can hand off to an existing LibreOffice process
+    on Windows and never return.  The installation's ``version.ini`` has the
+    same version information and is safe to inspect from the GUI.
+    """
+    version_file = Path(executable).with_name("version.ini")
+    try:
+        contents = version_file.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return f"detected ({executable})"
+    match = re.search(r"^\s*(?:BuildVersion|ProductVersion)\s*=\s*(.+?)\s*$",
+                      contents, flags=re.MULTILINE | re.IGNORECASE)
+    if match:
+        return f"{match.group(1)} ({executable})"
+    return f"detected ({executable})"
+
+
 def collect_about_info(tk_version):
     """Collect non-sensitive runtime details useful in a support report."""
     lines = [
@@ -179,6 +198,9 @@ def collect_about_info(tk_version):
         executable = _tool_executable(command)
         if not executable:
             lines.append(f"{label}: not found")
+            continue
+        if label == "LibreOffice" and os.name == "nt":
+            lines.append(f"LibreOffice: {_windows_libreoffice_detail(executable)}")
             continue
         try:
             result = subprocess.run(

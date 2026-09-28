@@ -7,7 +7,8 @@ from slidemovie.gui import (apply_stored_tts_config, display_path_value, display
                             build_settings_from_status, load_stored_tts_config, official_website_url, options_from_args,
                             display_prompt_separator, display_source_path, parse_prompt_separator, parse_screen_size, project_folder_paths, run_build, SlideMovieApp,
                             default_project_name_from_status, FOREST_THEME_PATH, gui_title, load_local_config, local_config_path, pptx_display_status, run_preflight_message, save_local_config, summarize_status, TEXT)
-from slidemovie.gui import load_window_size, save_window_size, window_size_for_screen
+from slidemovie.gui import (_windows_libreoffice_detail, load_window_size,
+                            save_window_size, window_size_for_screen)
 
 
 def _args(**changes):
@@ -78,6 +79,14 @@ def test_invalid_window_size_preferences_are_ignored(tmp_path):
     path.write_text('{"width": true, "height": 600}', encoding="utf-8")
 
     assert load_window_size(str(path)) is None
+
+
+def test_windows_libreoffice_version_is_read_without_running_soffice(tmp_path):
+    executable = tmp_path / "soffice.exe"
+    (tmp_path / "version.ini").write_text(
+        "[Version]\nBuildVersion=26.8.0.3\n", encoding="utf-8")
+
+    assert _windows_libreoffice_detail(str(executable)) == f"26.8.0.3 ({executable})"
 
 
 def test_local_config_path_is_next_to_the_subproject_markdown_input():
