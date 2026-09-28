@@ -36,6 +36,32 @@ python3 -m pip install slidemovie
 
 This will automatically install the necessary Python dependencies, including `multiai-tts` and `pptxtoimages`.
 
+#### If Windows cannot find the `slidemovie` command
+
+Even after pip installs `slidemovie`, the `slidemovie` command cannot be run directly if Python's Scripts folder is not on PATH. You can always start the equivalent module command:
+
+```powershell
+python3 -m slidemovie.cli -g
+```
+
+To use the shorter `slidemovie -g` command thereafter, run the following once in PowerShell to add Python's Scripts folder to your user PATH:
+
+```powershell
+$scriptsDir = python3 -c "import sysconfig; print(sysconfig.get_path('scripts'))"
+$userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+if ([string]::IsNullOrWhiteSpace($userPath)) {
+    [Environment]::SetEnvironmentVariable('Path', $scriptsDir, 'User')
+} elseif (($userPath -split ';') -notcontains $scriptsDir) {
+    [Environment]::SetEnvironmentVariable('Path', "$userPath;$scriptsDir", 'User')
+}
+```
+
+Close PowerShell, open a new window, and then verify it with:
+
+```powershell
+slidemovie -g
+```
+
 ## 2. Install External Tools
 
 `slidemovie` acts as a conductor for several powerful command-line tools. You must install these on your system for the program to work.

@@ -37,6 +37,32 @@ python3 -m pip install slidemovie
 
 これにより、`multiai-tts` や `pptxtoimages` を含む必要な Python ライブラリが自動的にインストールされます。
 
+#### Windows で `slidemovie` コマンドが見つからない場合
+
+`pip` が `slidemovie` をインストールしても、Python の Scripts フォルダーが PATH に登録されていないと、`slidemovie` コマンドを直接実行できないことがあります。その場合でも、次の同等のコマンドで起動できます。
+
+```powershell
+python3 -m slidemovie.cli -g
+```
+
+以後 `slidemovie -g` のように短いコマンドを使うには、PowerShell で次を一度だけ実行して、Python の Scripts フォルダーをユーザー PATH に追加してください。
+
+```powershell
+$scriptsDir = python3 -c "import sysconfig; print(sysconfig.get_path('scripts'))"
+$userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+if ([string]::IsNullOrWhiteSpace($userPath)) {
+    [Environment]::SetEnvironmentVariable('Path', $scriptsDir, 'User')
+} elseif (($userPath -split ';') -notcontains $scriptsDir) {
+    [Environment]::SetEnvironmentVariable('Path', "$userPath;$scriptsDir", 'User')
+}
+```
+
+PowerShell を閉じて新しく開いた後、次を実行して確認してください。
+
+```powershell
+slidemovie -g
+```
+
 ## 2. 外部ツールのインストール
 
 `slidemovie` は、いくつかの強力なコマンドラインツールの指揮者のような役割を果たします。プログラムを動作させるには、以下のツールをシステムにインストールする必要があります。
