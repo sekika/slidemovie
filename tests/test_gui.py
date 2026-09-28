@@ -1,5 +1,6 @@
 import json
 import os
+import threading
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -33,6 +34,20 @@ def test_options_from_args_preserves_only_explicit_overrides():
     assert options["tts_provider"] == "openai"
     assert {"tts_provider", "prompt", "tts_use_prompt"} <= options["overrides"]
     assert "tts_model" not in options["overrides"]
+
+
+def test_run_build_stops_before_starting_work_when_cancelled():
+    cancelled = threading.Event()
+    cancelled.set()
+    movie = SimpleNamespace()
+
+    try:
+        run_build(lambda: movie, {"source_dir": ".", "overrides": {}},
+                  cancel_event=cancelled)
+    except InterruptedError:
+        pass
+    else:
+        raise AssertionError("a pending cancellation must stop the build")
 
 
 def test_display_path_value_uses_config_unless_cli_path_is_explicit():

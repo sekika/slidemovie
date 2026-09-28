@@ -286,8 +286,8 @@ TEXT = {
         "separator": "Prompt separator", "chunk": "Chunk size", "split": "Split characters",
         "overflow": "On no split", "screen_size": "Screen size", "image_pad_color": "Image padding color", "video_fps": "Video FPS", "silence_sec": "Silence (seconds)", "restore": "Restore settings", "status": "Project status",
         "save_local": "Save to local config", "saved_local": "Saved local config: ", "save_failed": "Could not save local config: ",
-        "execution": "Run", "run": "Run", "clear": "Clear log", "website": "Website", "feedback": "Feedback", "copy_info": "Copy information", "info_copied": "Copied to clipboard", "collecting_info": "Collecting environment information…", "exit": "Exit",
-        "running": "Running", "success": "Succeeded", "failed": "Failed",
+        "execution": "Run", "run": "Run", "cancel_run": "Cancel", "clear": "Clear log", "website": "Website", "feedback": "Feedback", "copy_info": "Copy information", "info_copied": "Copied to clipboard", "collecting_info": "Collecting environment information…", "exit": "Exit",
+        "running": "Running", "cancelling": "Cancelling…", "cancelled": "Cancelled", "success": "Succeeded", "failed": "Failed",
         "yes": "Use", "no": "Do not use",
         "missing": "status.json has not been created.", "no_project": "Enter a project name to view status.",
         "invalid": "Please correct the input.", "action_required": "Please select an action.", "folder_not_found": "Folder does not exist.", "done": "Build completed.",
@@ -321,8 +321,8 @@ TEXT = {
         "separator": "プロンプト区切り", "chunk": "チャンクサイズ", "split": "分割候補文字",
         "overflow": "分割不可時", "screen_size": "画面サイズ", "image_pad_color": "画像余白色", "video_fps": "動画 FPS", "silence_sec": "無音時間（秒）", "restore": "設定から戻す", "status": "プロジェクトの状態",
         "save_local": "ローカル設定に保存", "saved_local": "ローカル設定を保存しました: ", "save_failed": "ローカル設定を保存できません: ",
-        "execution": "実行", "run": "実行", "clear": "ログを消去", "website": "公式サイト", "feedback": "フィードバック", "copy_info": "情報をクリップボードにコピー", "info_copied": "クリップボードにコピーしました", "collecting_info": "環境情報を収集中…", "exit": "終了",
-        "running": "実行中", "success": "成功", "failed": "失敗",
+        "execution": "実行", "run": "実行", "cancel_run": "中断", "clear": "ログを消去", "website": "公式サイト", "feedback": "フィードバック", "copy_info": "情報をクリップボードにコピー", "info_copied": "クリップボードにコピーしました", "collecting_info": "環境情報を収集中…", "exit": "終了",
+        "running": "実行中", "cancelling": "中断処理中", "cancelled": "中断しました", "success": "成功", "failed": "失敗",
         "yes": "使用する", "no": "使用しない",
         "missing": "status.json はまだ作成されていません。", "no_project": "状態を表示するにはプロジェクト名を入力してください。",
         "invalid": "入力内容を確認してください。", "action_required": "実行内容を選んでください。", "folder_not_found": "フォルダーが存在しません。", "done": "ビルドが完了しました。",
@@ -696,9 +696,13 @@ class QueueLogHandler(logging.Handler):
         self.event_queue.put(("log", self.format(record)))
 
 
-def run_build(movie_factory, options, confirm_callback=None, tts_conflict_callback=None):
+def run_build(movie_factory, options, confirm_callback=None, tts_conflict_callback=None,
+              cancel_event=None):
     """Run the shared Movie workflow; kept free of Tk for unit testing."""
     movie = movie_factory()
+    movie.cancel_event = cancel_event
+    if cancel_event is not None and cancel_event.is_set():
+        raise InterruptedError("Build cancelled by user.")
     load_project_config = getattr(movie, "load_project_config", None)
     if callable(load_project_config):
         load_project_config(options["source_dir"], options.get("subproject_name", ""))
@@ -728,10 +732,16 @@ def run_build(movie_factory, options, confirm_callback=None, tts_conflict_callba
                     apply_stored_build_config(movie, stored_build)
             elif choice != "overwrite":
                 raise RuntimeError("Build cancelled by user.")
+    if cancel_event is not None and cancel_event.is_set():
+        raise InterruptedError("Build cancelled by user.")
     if options.get("build_pptx"):
         movie.build_slide_pptx()
+        if cancel_event is not None and cancel_event.is_set():
+            raise InterruptedError("Build cancelled by user.")
     if options.get("build_video"):
         movie.build_all()
+        if cancel_event is not None and cancel_event.is_set():
+            raise InterruptedError("Build cancelled by user.")
     return getattr(movie, "video_file", None)
 
 
@@ -744,6 +754,7 @@ class SlideMovieApp:
         self.movie_factory = movie_factory or self._movie_factory
         self.events = queue.Queue()
         self.worker = None
+        self.cancel_event = None
         self.running = False
         self.run_state = None
         self.initial_options = initial_options or {"overrides": set()}
@@ -905,15 +916,18 @@ class SlideMovieApp:
         ))
         # Keep the command and its validation feedback in a separate section.
         self.run_frame = ttk.LabelFrame(self.project_tab); self.run_frame.grid(row=3, column=0, sticky="ew", pady=(8, 0))
-        self.run_frame.columnconfigure(2, weight=1)
+        self.run_frame.columnconfigure(3, weight=1)
         self.run_button = ttk.Button(self.run_frame, command=self.start,
                                      state="disabled", style="Accent.TButton")
         self.run_button.grid(row=0, column=0, padx=4, pady=(4, 2), sticky="w")
         self.run_state_var = tk.StringVar()
         self.run_state_label = ttk.Label(self.run_frame, textvariable=self.run_state_var)
         self.run_state_label.grid(row=0, column=1, padx=4, pady=(4, 2), sticky="w")
-        self.run_check_label = ttk.Label(self.run_frame, textvariable=self.run_check_var, wraplength=max(250, width - 260))
-        self.run_check_label.grid(row=0, column=2, padx=4, pady=(4, 2), sticky="w")
+        self.cancel_button = ttk.Button(self.run_frame, command=self._request_cancel)
+        self.cancel_button.grid(row=0, column=2, padx=4, pady=(4, 2), sticky="w")
+        self.cancel_button.grid_remove()
+        self.run_check_label = ttk.Label(self.run_frame, textvariable=self.run_check_var, wraplength=max(200, width - 330))
+        self.run_check_label.grid(row=0, column=3, padx=4, pady=(4, 2), sticky="w")
         self.settings_canvas = tk.Canvas(self.settings_tab, highlightthickness=0)
         settings_scroll = ttk.Scrollbar(self.settings_tab, orient="vertical", command=self.settings_canvas.yview)
         self.settings_canvas.configure(yscrollcommand=settings_scroll.set)
@@ -1047,7 +1061,7 @@ class SlideMovieApp:
         self.notebook.tab(self.about_tab, text=text["about_tab"])
         self.pptx_check.configure(text=text["pptx"]); self.video_check.configure(text=text["video"]); self.debug_check.configure(text=text["debug"])
         self.use_prompt_label.configure(text=text["use_prompt"]); self.prompt_label.configure(text=text["prompt"]); self.separator_label.configure(text=text["separator"])
-        self.restore_button.configure(text=text["restore"]); self.save_local_button.configure(text=text["save_local"]); self.run_button.configure(text=text["run"]); self.clear_button.configure(text=text["clear"]); self.about_website_button.configure(text=text["website"]); self.feedback_button.configure(text=text["feedback"]); self.copy_info_button.configure(text=text["copy_info"]); self.exit_button.configure(text=text["exit"])
+        self.restore_button.configure(text=text["restore"]); self.save_local_button.configure(text=text["save_local"]); self.run_button.configure(text=text["run"]); self.cancel_button.configure(text=text["cancel_run"]); self.clear_button.configure(text=text["clear"]); self.about_website_button.configure(text=text["website"]); self.feedback_button.configure(text=text["feedback"]); self.copy_info_button.configure(text=text["copy_info"]); self.exit_button.configure(text=text["exit"])
         self.use_prompt_combo.configure(values=(text["yes"], text["no"]))
         self.use_prompt_combo.set({"yes": text["yes"], "no": text["no"]}[choice])
         self.language_combo.set("日本語" if self.language == "ja" else "English")
@@ -1392,7 +1406,11 @@ class SlideMovieApp:
             return
         if not self._validate():
             messagebox.showerror(TEXT[self.language]["invalid"], TEXT[self.language]["invalid"], parent=self.root); return
-        self.running = True; self._set_controls("disabled"); self._set_state("running")
+        self.running = True
+        self.cancel_event = threading.Event()
+        self._set_controls("disabled")
+        self._set_state("running")
+        self.cancel_button.grid()
         options = self._options()
         tts_conflict_choice = {"value": None}
         def confirm(_stored, _current):
@@ -1408,14 +1426,25 @@ class SlideMovieApp:
             return request["answer"]
         def worker():
             try:
-                path = run_build(self.movie_factory, options, confirm, resolve_tts_conflict)
+                path = run_build(self.movie_factory, options, confirm, resolve_tts_conflict,
+                                 self.cancel_event)
                 self.events.put(("result", "success", path))
+            except InterruptedError:
+                self.events.put(("result", "cancelled", None))
             except SystemExit as exc:
                 self.events.put(("result", "failed", f"Exited with status {exc.code}"))
             except Exception:
                 self.events.put(("log", traceback.format_exc()))
                 self.events.put(("result", "failed", None))
         self.worker = threading.Thread(target=worker, daemon=False); self.worker.start()
+
+    def _request_cancel(self):
+        """Request a cooperative stop after the active work unit completes."""
+        if not self.running or self.cancel_event is None:
+            return
+        self.cancel_event.set()
+        self.cancel_button.grid_remove()
+        self._set_state("cancelling")
 
     def _poll_events(self):
         from tkinter import messagebox
@@ -1434,9 +1463,18 @@ class SlideMovieApp:
                         self._populate_stored_build_config(load_stored_build_config(self._status_path()))
                     event[1]["event"].set()
                 elif event[0] == "result":
-                    self.running = False; self._set_controls("normal"); success = event[1] == "success"; self._set_state("success" if success else "failed")
-                    if success: self.append_log(event[2] or TEXT[self.language]["done"]); messagebox.showinfo(TEXT[self.language]["success"], TEXT[self.language]["done"], parent=self.root)
-                    else: messagebox.showerror(TEXT[self.language]["failed"], TEXT[self.language]["failed_message"], parent=self.root)
+                    self.running = False
+                    self.cancel_event = None
+                    self.cancel_button.grid_remove()
+                    self._set_controls("normal")
+                    success = event[1] == "success"
+                    cancelled = event[1] == "cancelled"
+                    self._set_state("success" if success else "cancelled" if cancelled else "failed")
+                    if success:
+                        self.append_log(event[2] or TEXT[self.language]["done"])
+                        messagebox.showinfo(TEXT[self.language]["success"], TEXT[self.language]["done"], parent=self.root)
+                    elif not cancelled:
+                        messagebox.showerror(TEXT[self.language]["failed"], TEXT[self.language]["failed_message"], parent=self.root)
                     self.refresh_status()
         except queue.Empty:
             pass

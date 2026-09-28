@@ -2,6 +2,7 @@ import os
 import json
 import pytest
 import sys
+import threading
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -171,6 +172,16 @@ Note A
         assert slides[1]['video_file'] == 'demo.mp4'
 
 class TestBuildLogic:
+    def test_build_all_honors_a_pending_cancellation(self, movie, mocker):
+        movie.cancel_event = threading.Event()
+        movie.cancel_event.set()
+        check_tools = mocker.patch.object(movie, "_check_external_tools")
+
+        with pytest.raises(InterruptedError):
+            movie.build_all()
+
+        check_tools.assert_not_called()
+
     def test_regenerated_slide_image_replaces_the_previous_windows_destination(
             self, movie, tmp_path, mocker):
         """Image regeneration must replace an existing named slide PNG."""

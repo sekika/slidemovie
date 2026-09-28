@@ -30,7 +30,9 @@ When you close the window, its width and height are saved to `~/.config/slidemov
 3. In **Video source** beside **Build video**, select **PPTX** normally, or **PDF** for a video made from a PDF.
 4. Click **Run** in the separate **Run** section.
 
-While a build is running and after it completes, the area to the right of **Run** shows **Running**, **Succeeded**, or **Failed**. Changing the source folder, project name, or subproject name clears the result from the previous project.
+While a build is running and after it completes, the area to the right of **Run** shows **Running**, **Succeeded**, **Failed**, or **Cancelled**. Changing the source folder, project name, or subproject name clears the result from the previous project.
+
+While a build is running, a **Cancel** button is shown. After selecting it, the status changes to **Cancelling…**. The active TTS, conversion, or FFmpeg work unit is allowed to finish, then later work is skipped and the status becomes **Cancelled**. External programs are not forcibly terminated. Completed assets remain available for the next incremental build.
 
 Use **Input files** and **Output files** under **Open folder** to open the actual project source and output directories in your file manager.
 

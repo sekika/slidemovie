@@ -45,6 +45,18 @@ class Movie():
         logging.getLogger("google_genai").setLevel(logging.WARNING)
         logging.getLogger("httpx").setLevel(logging.WARNING)
 
+    def _raise_if_cancelled(self):
+        """Stop between work units after the GUI requested cancellation.
+
+        The flag deliberately does not terminate an active external process or
+        TTS request.  It is checked after that process returns and before the
+        next unit begins, leaving completed files available for the next
+        incremental build.
+        """
+        cancel_event = getattr(self, "cancel_event", None)
+        if cancel_event is not None and cancel_event.is_set():
+            raise InterruptedError("Build cancelled by user.")
+
     def _check_external_tools(self):
         """
         Checks if required external command-line tools are installed.
@@ -417,6 +429,7 @@ class Movie():
         Note: This does not update the PPTX file from Markdown.
         Run `build_slide_pptx()` beforehand if necessary.
         """
+        self._raise_if_cancelled()
         self._check_external_tools()
         if not os.path.isfile(self.md_file):
             logger.error(f'{self.md_file} does not exist.')
@@ -424,10 +437,13 @@ class Movie():
 
         # 1. Generate narration audio from Markdown notes
         self.build_slide_audio()
+        self._raise_if_cancelled()
         # 2. Generate slide images from PPTX
         self.build_slide_images()
+        self._raise_if_cancelled()
         # 3. Create individual video clips for each slide
         self.build_slide_videos()
+        self._raise_if_cancelled()
         # 4. Concatenate clips into the final video
         self.build_final_video()
 
@@ -436,6 +452,7 @@ class Movie():
         Synthesizes audio (TTS) from Markdown notes and saves as WAV files.
         Skips slides that have a pre-defined video file.
         """
+        self._raise_if_cancelled()
         self._ensure_slide_ids()
         state = self._load_audio_state()
         slides_list = self._extract_slides_list()
@@ -445,6 +462,7 @@ class Movie():
 
         # 2. Audio generation loop
         for slide in slides_list:
+            self._raise_if_cancelled()
             slide_id = slide["id"]
 
             # Skip TTS if a video file is specified
@@ -495,7 +513,9 @@ class Movie():
 
                 self._speak_to_wav(
                     norm, wav_path, additional_prompt=add_prompt)
+                self._raise_if_cancelled()
                 self.prepend_silence(wav_path)
+                self._raise_if_cancelled()
                 duration = self._get_wav_duration(wav_path)
 
                 slide_state["notes_hash"] = current_notes_hash
@@ -531,6 +551,7 @@ class Movie():
             - ImageMagick (`convert`/`magick`) must be available for normalization.
         """
         import glob
+        self._raise_if_cancelled()
 
         # Select image source based on use_pdf
         use_pdf = getattr(self, "use_pdf", False)
@@ -574,6 +595,10 @@ class Movie():
             converter = PPTXToImageConverter(source_file, self.movie_dir)
             converter.convert()
 
+        # Do not rename or record partially regenerated images after a
+        # cancellation requested while the source converter was running.
+        self._raise_if_cancelled()
+
         # Get generated filenames (slide_1.png, slide_2.png...)
         generated_files = sorted(
             glob.glob(os.path.join(self.movie_dir, "slide_*.png")),
@@ -584,6 +609,7 @@ class Movie():
         # Normalize each image to screen_size (aspect-preserving even padding)
         for png in generated_files:
             self._normalize_image_to_screen(png)
+            self._raise_if_cancelled()
 
         # Get list of slide_ids
         slide_notes = self._extract_slide_notes()
@@ -693,6 +719,7 @@ class Movie():
 
         # Generation loop
         for slide in slides_list:
+            self._raise_if_cancelled()
             slide_id = slide["id"]
             video_file_src = slide.get("video_file")
 
@@ -754,7 +781,7 @@ class Movie():
 
                 try:
                     result = subprocess.run(cmd, check=False, capture_output=True, text=True)
-                    
+                    self._raise_if_cancelled()
                     if result.returncode != 0:
                         logger.error(f"Video conversion failed: {slide_id}")
                         logger.error(f"Command: {' '.join(cmd)}")
@@ -778,6 +805,8 @@ class Movie():
                     self._save_audio_state(state)
                     logger.info(f"Done: {output_mp4} ({duration:.2f}s)")
 
+                except InterruptedError:
+                    raise
                 except Exception as e:
                     logger.error(f"Unexpected error converting video: {slide_id}: {e}")
 
@@ -834,7 +863,7 @@ class Movie():
                 logger.info(f"Generating {slide_id}.mp4...")
                 try:
                     result = subprocess.run(cmd, check=False, capture_output=True, text=True)
-                    
+                    self._raise_if_cancelled()
                     if result.returncode != 0:
                         logger.error(f"MP4 creation failed: {slide_id}")
                         logger.error(f"Command: {' '.join(cmd)}")
@@ -857,6 +886,8 @@ class Movie():
                     self._save_audio_state(state)
                     logger.info(f"Done: {output_mp4} ({duration:.2f}s)")
 
+                except InterruptedError:
+                    raise
                 except Exception as e:
                     logger.error(f"Unexpected error creating MP4: {slide_id}: {e}")
 
@@ -872,6 +903,7 @@ class Movie():
         5. Save results to JSON.
         """
         import subprocess
+        self._raise_if_cancelled()
 
         state = self._load_audio_state()
 
@@ -960,6 +992,7 @@ class Movie():
 
         try:
             subprocess.run(cmd, check=True)
+            self._raise_if_cancelled()
 
             # 5. Save results
             duration_sec = self._get_mp4_duration(self.video_file)
@@ -1537,6 +1570,7 @@ class Movie():
         Prerequisites:
             - `pandoc` must be installed.
         """
+        self._raise_if_cancelled()
         if not os.path.exists(self.md_file):
             logger.error(f"Markdown file does not exist: {self.md_file}")
             return
@@ -1568,6 +1602,7 @@ class Movie():
 
         try:
             subprocess.check_call(command, shell=True)
+            self._raise_if_cancelled()
 
             # 2. Save state
             state["pptx_task"] = {
