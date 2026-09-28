@@ -53,7 +53,7 @@ if ([string]::IsNullOrWhiteSpace($userPath)) {
 Close PowerShell, open a new window, and then verify it with:
 
 ```powershell
-slidemovie -g
+slidemovie -h
 ```
 
 ## 2. Install External Tools

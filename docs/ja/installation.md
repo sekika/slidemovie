@@ -54,7 +54,7 @@ if ([string]::IsNullOrWhiteSpace($userPath)) {
 PowerShell を閉じて新しく開いた後、次を実行して確認してください。
 
 ```powershell
-slidemovie -g
+slidemovie -h
 ```
 
 ## 2. 外部ツールのインストール
