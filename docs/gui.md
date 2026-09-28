@@ -52,7 +52,13 @@ When the current TTS settings differ from `status.json`, choose one of the follo
 - **Overwrite with current settings**: continues with the current GUI settings and updates the recorded TTS settings.
 - **Cancel**: stops before building.
 
-The interface is available in English and Japanese. The **Website** button opens the official site for the selected language.
+The interface is available in English and Japanese.
+
+## About
+
+The **About** tab shows the icon, the version of `slidemovie` currently running, a **Website** button for the selected language, and a **Feedback** button that opens GitHub Issues. It also reports the OS, Python, Tk, locale, working directory, user configuration location, related Python packages, and the detected paths and versions of FFmpeg, Pandoc, LibreOffice, Poppler, and ImageMagick.
+
+Click **Copy information** to copy these troubleshooting details as one report. It does not include API keys, prompts, `status.json` contents, or PATH.
 
 ## Create a GUI shortcut
 
@@ -74,6 +80,8 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 The script creates `SlideMovie.lnk` on the desktop. It automatically finds `pythonw.exe` and opens the GUI without showing a console window. It also records the creation-time `PATH` in a small launcher, so external tools such as FFmpeg remain available when you start the shortcut from Explorer. In the usual case, the command above is all you need; do not edit the script.
 
+You do not need to recreate the shortcut after upgrading `slidemovie` in the same Python environment: it starts the upgraded package through the same `pythonw.exe`. Recreate it only if you install `slidemovie` into a different Python environment.
+
 If the first attempt reports that Python cannot be found, paste and run these **two lines together** in PowerShell. The first line uses the Python Launcher to find `pythonw.exe`; the second passes that location to the shortcut-creation script. You do not need to edit either the shortcut or the script.
 
 ```powershell
@@ -93,3 +101,5 @@ chmod +x create-slidemovie-app.command
 ```
 
 The script creates and opens `~/Applications/SlideMovie.app`. It explicitly passes the folder where you ran the creation script as `--source-dir`, so that folder becomes the initial source folder. Run the script from the folder you want to use. It also records the creation-time `PATH` so that external tools installed through Homebrew remain available when you open the app directly from Finder. Move the app to `/Applications` if you want it available to every user on the Mac. If startup fails, check `~/Library/Logs/SlideMovie.log`. The script records the current `slidemovie` command path; run `which slidemovie` first if you need to check which Python environment will be used.
+
+You do not need to recreate the app after upgrading `slidemovie` in the same Python environment: the recorded command starts the upgraded package at the same location. Re-run the creation script only if you install `slidemovie` into a different Python environment.

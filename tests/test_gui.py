@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 from slidemovie.gui import (apply_stored_tts_config, display_path_value, display_setting_value, open_folder,
                             build_settings_from_status, load_stored_tts_config, official_website_url, options_from_args,
                             display_prompt_separator, display_source_path, parse_prompt_separator, parse_screen_size, project_folder_paths, run_build, SlideMovieApp,
-                            default_project_name_from_status, load_local_config, local_config_path, pptx_display_status, run_preflight_message, save_local_config, summarize_status, TEXT)
+                            default_project_name_from_status, gui_title, load_local_config, local_config_path, pptx_display_status, run_preflight_message, save_local_config, summarize_status, TEXT)
 
 
 def _args(**changes):
@@ -51,6 +51,11 @@ def test_configured_filename_is_shown_when_only_cli_paths_are_prioritized():
 def test_display_source_path_expands_the_current_or_relative_directory():
     assert display_source_path(".") == os.getcwd()
     assert display_source_path("project") == os.path.join(os.getcwd(), "project")
+
+
+def test_gui_title_is_not_hard_coded_to_the_initial_gui_release():
+    assert gui_title().startswith("slidemovie")
+    assert TEXT["ja"]["title"] == gui_title()
 
 
 def test_local_config_path_is_next_to_the_subproject_markdown_input():

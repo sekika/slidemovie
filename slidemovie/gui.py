@@ -8,9 +8,12 @@ import json
 import locale
 import logging
 import os
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
+import platform
 import queue
 import re
+import shutil
 import subprocess
 import sys
 import threading
@@ -71,13 +74,114 @@ OFFICIAL_WEBSITES = {
     "en": "https://sekika.github.io/slidemovie/",
     "ja": "https://sekika.github.io/slidemovie/ja/",
 }
+FEEDBACK_URL = "https://github.com/sekika/slidemovie/issues"
 
 WINDOW_ICON_PATH = Path(__file__).with_name("assets") / "slidemovie.png"
 
 
+def gui_title():
+    """Return a title that identifies the package actually being executed."""
+    try:
+        return f"slidemovie {version('slidemovie')}"
+    except PackageNotFoundError:
+        # This fallback supports running directly from an unpacked source tree
+        # that has not been installed as package metadata yet.
+        return "slidemovie"
+
+
+GUI_TITLE = gui_title()
+
+
+def _tool_executable(command):
+    """Locate a diagnostic tool, including LibreOffice's Windows default path."""
+    found = shutil.which(command)
+    if found or command != "soffice" or os.name != "nt":
+        return found
+    for variable in ("ProgramFiles", "ProgramW6432", "ProgramFiles(x86)"):
+        root = os.environ.get(variable)
+        if not root:
+            continue
+        candidate = os.path.join(root, "LibreOffice", "program", "soffice.exe")
+        if os.path.isfile(candidate):
+            return candidate
+    return None
+
+
+def collect_about_info(tk_version):
+    """Collect non-sensitive runtime details useful in a support report."""
+    lines = [
+        GUI_TITLE,
+        f"Package path: {Path(__file__).resolve().parent}",
+        "",
+        "Environment:",
+        f"OS: {platform.platform()}",
+        f"Machine: {platform.machine() or '-'}",
+        f"Python: {sys.version.replace(chr(10), ' ')}",
+        f"Python executable: {sys.executable}",
+        f"Tk: {tk_version or '-'}",
+        f"Working directory: {os.getcwd()}",
+        f"User config: {os.path.join(os.path.expanduser('~'), '.config', 'slidemovie', 'config.json')}",
+        "",
+        "Python packages:",
+    ]
+    try:
+        current_locale = locale.setlocale(locale.LC_CTYPE, None) or "-"
+    except locale.Error:
+        current_locale = "unavailable"
+    lines.insert(8, f"Locale: {current_locale}")
+    for package in ("slidemovie", "multiai", "multiai-tts", "pptxtoimages", "google-genai"):
+        try:
+            lines.append(f"{package}: {version(package)}")
+        except (PackageNotFoundError, ValueError):
+            lines.append(f"{package}: not installed")
+    lines.extend((
+        "",
+        "External tools:",
+    ))
+    tools = (
+        ("FFmpeg", "ffmpeg", "-version"),
+        ("FFprobe", "ffprobe", "-version"),
+        ("Pandoc", "pandoc", "--version"),
+        ("LibreOffice", "soffice", "--version"),
+        ("Poppler (pdftoppm)", "pdftoppm", "-v"),
+        ("ImageMagick", "magick", "-version"),
+    )
+    for label, command, argument in tools:
+        executable = _tool_executable(command)
+        if not executable:
+            lines.append(f"{label}: not found")
+            continue
+        try:
+            result = subprocess.run(
+                [executable, argument], capture_output=True, text=True,
+                check=False, timeout=5, errors="replace",
+            )
+            output = (result.stdout or result.stderr or "").strip()
+            detail = output.splitlines()[0] if output else f"exit status {result.returncode}"
+            lines.append(f"{label}: {detail} ({executable})")
+        except Exception as exc:
+            lines.append(f"{label}: could not run ({executable}): {exc}")
+    # On macOS and Linux, ImageMagick may be installed as ``convert`` rather
+    # than ``magick``.  Windows' convert.exe is unrelated, so never use it.
+    if not _tool_executable("magick") and os.name != "nt":
+        executable = _tool_executable("convert")
+        if executable:
+            try:
+                result = subprocess.run(
+                    [executable, "-version"], capture_output=True, text=True,
+                    check=False, timeout=5, errors="replace",
+                )
+                output = (result.stdout or result.stderr or "").strip()
+                detail = output.splitlines()[0] if output else f"exit status {result.returncode}"
+                lines[-1] = f"ImageMagick: {detail} ({executable})"
+            except Exception as exc:
+                lines[-1] = f"ImageMagick: could not run ({executable}): {exc}"
+    return "\n".join(lines)
+
+
 TEXT = {
     "en": {
-        "title": "slidemovie 0.8.0", "project": "Project", "settings_tab": "Settings", "log_tab": "Log", "source": "Source folder",
+        "title": GUI_TITLE, "project": "Project", "settings_tab": "Settings", "log_tab": "Log", "about_tab": "About", "source": "Source folder",
         "name": "Project name", "sub_mode": "Use subproject", "sub": "Subproject name",
         "output": "Output root", "filename": "Output filename", "browse": "Browse", "open_folder": "Open folder",
         "input_files": "Input files", "output_files": "Output files",
@@ -89,7 +193,7 @@ TEXT = {
         "separator": "Prompt separator", "chunk": "Chunk size", "split": "Split characters",
         "overflow": "On no split", "screen_size": "Screen size", "image_pad_color": "Image padding color", "video_fps": "Video FPS", "silence_sec": "Silence (seconds)", "restore": "Restore settings", "status": "Project status",
         "save_local": "Save to local config", "saved_local": "Saved local config: ", "save_failed": "Could not save local config: ",
-        "run": "Run", "clear": "Clear log", "website": "Website", "exit": "Exit",
+        "run": "Run", "clear": "Clear log", "website": "Website", "feedback": "Feedback", "copy_info": "Copy information", "info_copied": "Copied to clipboard", "collecting_info": "Collecting environment information…", "exit": "Exit",
         "idle": "Idle", "running": "Running", "success": "Succeeded", "failed": "Failed",
         "yes": "Use", "no": "Do not use",
         "missing": "status.json has not been created.", "no_project": "Enter a project name to view status.",
@@ -112,7 +216,7 @@ TEXT = {
         "completed_count": "done", "failed_count": "failed",
     },
     "ja": {
-        "title": "slidemovie 0.8.0", "project": "プロジェクト", "settings_tab": "設定", "log_tab": "ログ", "source": "ソースフォルダー",
+        "title": GUI_TITLE, "project": "プロジェクト", "settings_tab": "設定", "log_tab": "ログ", "about_tab": "情報", "source": "ソースフォルダー",
         "name": "プロジェクト名", "sub_mode": "サブプロジェクトを使用", "sub": "サブプロジェクト名",
         "output": "出力先ルート", "filename": "出力ファイル名", "browse": "参照", "open_folder": "フォルダーを開く",
         "input_files": "入力ファイル", "output_files": "出力ファイル",
@@ -124,7 +228,7 @@ TEXT = {
         "separator": "プロンプト区切り", "chunk": "チャンクサイズ", "split": "分割候補文字",
         "overflow": "分割不可時", "screen_size": "画面サイズ", "image_pad_color": "画像余白色", "video_fps": "動画 FPS", "silence_sec": "無音時間（秒）", "restore": "設定から戻す", "status": "プロジェクトの状態",
         "save_local": "ローカル設定に保存", "saved_local": "ローカル設定を保存しました: ", "save_failed": "ローカル設定を保存できません: ",
-        "run": "実行", "clear": "ログを消去", "website": "公式サイト", "exit": "終了",
+        "run": "実行", "clear": "ログを消去", "website": "公式サイト", "feedback": "フィードバック", "copy_info": "情報をクリップボードにコピー", "info_copied": "クリップボードにコピーしました", "collecting_info": "環境情報を収集中…", "exit": "終了",
         "idle": "待機中", "running": "実行中", "success": "成功", "failed": "失敗",
         "yes": "使用する", "no": "使用しない",
         "missing": "status.json はまだ作成されていません。", "no_project": "状態を表示するにはプロジェクト名を入力してください。",
@@ -526,6 +630,7 @@ class SlideMovieApp:
         self.root.protocol("WM_DELETE_WINDOW", self.close)
         self.root.after(100, self._poll_events)
         self.root.after(250, self._poll_run_preflight)
+        self._start_about_info_collection()
 
     @staticmethod
     def _movie_factory():
@@ -610,7 +715,8 @@ class SlideMovieApp:
         self.project_tab = ttk.Frame(self.notebook, padding=6)
         self.settings_tab = ttk.Frame(self.notebook, padding=0)
         self.log_tab = ttk.Frame(self.notebook, padding=6)
-        self.notebook.add(self.project_tab); self.notebook.add(self.settings_tab); self.notebook.add(self.log_tab)
+        self.about_tab = ttk.Frame(self.notebook, padding=10)
+        self.notebook.add(self.project_tab); self.notebook.add(self.settings_tab); self.notebook.add(self.log_tab); self.notebook.add(self.about_tab)
         self.project_tab.columnconfigure(0, weight=1)
         self.project_frame = ttk.LabelFrame(self.project_tab); self.project_frame.grid(row=0, column=0, sticky="ew")
         self.project_frame.columnconfigure(1, weight=1)
@@ -697,13 +803,42 @@ class SlideMovieApp:
         self.clear_button = ttk.Button(log_controls, command=self.clear_log)
         self.clear_button.grid(row=0, column=1, padx=4)
         self.interactive_widgets.append(self.debug_check)
+        self.about_tab.columnconfigure(0, weight=1)
+        self.about_tab.rowconfigure(1, weight=1)
+        about_header = ttk.Frame(self.about_tab)
+        about_header.grid(row=0, column=0, sticky="ew", pady=(0, 8))
+        if self.window_icon is not None:
+            # The bundled 512px image is appropriate for a window icon but
+            # overwhelms the compact About header.  Keep a 64px display copy.
+            self.about_icon_image = self.window_icon.subsample(8, 8)
+            self.about_icon = ttk.Label(about_header, image=self.about_icon_image)
+            self.about_icon.grid(row=0, column=0, rowspan=2, padx=(0, 10))
+        self.about_title = ttk.Label(about_header, text=GUI_TITLE,
+                                     font=("TkDefaultFont", 16, "bold"))
+        self.about_title.grid(row=0, column=1, sticky="w")
+        self.about_website_button = ttk.Button(about_header, command=self._open_website)
+        self.about_website_button.grid(row=1, column=1, sticky="w", pady=(5, 0))
+        self.feedback_button = ttk.Button(about_header, command=self._open_feedback)
+        self.feedback_button.grid(row=1, column=2, sticky="w", padx=(4, 0), pady=(5, 0))
+        self.about_info_text = tk.Text(self.about_tab, height=17, wrap="none", state="disabled")
+        self.about_info_text.grid(row=1, column=0, sticky="nsew")
+        about_scroll = ttk.Scrollbar(self.about_tab, orient="vertical", command=self.about_info_text.yview)
+        about_scroll.grid(row=1, column=1, sticky="ns")
+        about_xscroll = ttk.Scrollbar(self.about_tab, orient="horizontal", command=self.about_info_text.xview)
+        about_xscroll.grid(row=2, column=0, sticky="ew")
+        self.about_info_text.configure(yscrollcommand=about_scroll.set, xscrollcommand=about_xscroll.set)
+        about_controls = ttk.Frame(self.about_tab)
+        about_controls.grid(row=3, column=0, sticky="ew", pady=(8, 0))
+        self.copy_info_button = ttk.Button(about_controls, command=self._copy_about_info)
+        self.copy_info_button.grid(row=0, column=0, sticky="w")
+        self.about_copy_status = ttk.Label(about_controls)
+        self.about_copy_status.grid(row=0, column=1, sticky="w", padx=8)
         controls = ttk.Frame(outer); controls.grid(row=1, column=0, sticky="ew", pady=(8, 0))
         self.language_combo = ttk.Combobox(controls, state="readonly", values=("日本語", "English"), width=10); self.language_combo.grid(row=0, column=0, sticky="w")
         self.language_combo.bind("<<ComboboxSelected>>", self._change_language)
-        self.website_button = ttk.Button(controls, command=self._open_website); self.website_button.grid(row=0, column=1, padx=4)
-        self.exit_button = ttk.Button(controls, command=self.close); self.exit_button.grid(row=0, column=2, padx=4)
-        self.state_label = ttk.Label(controls); self.state_label.grid(row=0, column=3, sticky="e", padx=8)
-        controls.columnconfigure(3, weight=1)
+        self.exit_button = ttk.Button(controls, command=self.close); self.exit_button.grid(row=0, column=1, padx=4)
+        self.state_label = ttk.Label(controls); self.state_label.grid(row=0, column=2, sticky="e", padx=8)
+        controls.columnconfigure(2, weight=1)
         self.interactive_widgets.append(self.language_combo)
         for name, var in self.setting_vars.items():
             var.trace_add("write", lambda *_args, key=name: self._mark_override(key))
@@ -753,9 +888,10 @@ class SlideMovieApp:
         self.notebook.tab(self.project_tab, text=text["project"])
         self.notebook.tab(self.settings_tab, text=text["settings_tab"])
         self.notebook.tab(self.log_tab, text=text["log_tab"])
+        self.notebook.tab(self.about_tab, text=text["about_tab"])
         self.pptx_check.configure(text=text["pptx"]); self.video_check.configure(text=text["video"]); self.pdf_check.configure(text="PDF"); self.debug_check.configure(text=text["debug"])
         self.use_prompt_label.configure(text=text["use_prompt"]); self.prompt_label.configure(text=text["prompt"]); self.separator_label.configure(text=text["separator"])
-        self.restore_button.configure(text=text["restore"]); self.save_local_button.configure(text=text["save_local"]); self.run_button.configure(text=text["run"]); self.clear_button.configure(text=text["clear"]); self.website_button.configure(text=text["website"]); self.exit_button.configure(text=text["exit"])
+        self.restore_button.configure(text=text["restore"]); self.save_local_button.configure(text=text["save_local"]); self.run_button.configure(text=text["run"]); self.clear_button.configure(text=text["clear"]); self.about_website_button.configure(text=text["website"]); self.feedback_button.configure(text=text["feedback"]); self.copy_info_button.configure(text=text["copy_info"]); self.exit_button.configure(text=text["exit"])
         self.use_prompt_combo.configure(values=(text["yes"], text["no"]))
         self.use_prompt_combo.set({"yes": text["yes"], "no": text["no"]}[choice])
         self.language_combo.set("日本語" if self.language == "ja" else "English")
@@ -882,6 +1018,39 @@ class SlideMovieApp:
 
     def _open_website(self):
         webbrowser.open(official_website_url(self.language), new=2)
+
+    def _open_feedback(self):
+        webbrowser.open(FEEDBACK_URL, new=2)
+
+    def _start_about_info_collection(self):
+        """Populate diagnostic details without delaying the first GUI paint."""
+        self._set_about_info(TEXT[self.language]["collecting_info"])
+        tk_version = self.root.tk.call("info", "patchlevel")
+
+        def collect():
+            try:
+                info = collect_about_info(tk_version)
+            except Exception:
+                # Never leave the About tab on "collecting" if an unusual
+                # platform library fails before an individual tool is tested.
+                info = f"{GUI_TITLE}\n\nCould not collect all environment information.\n\n{traceback.format_exc()}"
+            self.events.put(("about_info", info))
+
+        threading.Thread(target=collect, daemon=True).start()
+
+    def _set_about_info(self, value):
+        self.about_info_text.configure(state="normal")
+        self.about_info_text.delete("1.0", "end")
+        self.about_info_text.insert("1.0", value)
+        self.about_info_text.configure(state="disabled")
+
+    def _copy_about_info(self):
+        info = self.about_info_text.get("1.0", "end-1c")
+        if not info or info == TEXT[self.language]["collecting_info"]:
+            return
+        self.root.clipboard_clear()
+        self.root.clipboard_append(info)
+        self.about_copy_status.configure(text=TEXT[self.language]["info_copied"])
 
     def _project_folder_paths(self):
         return project_folder_paths(
@@ -1096,6 +1265,8 @@ class SlideMovieApp:
             while True:
                 event = self.events.get_nowait()
                 if event[0] == "log": self.append_log(event[1])
+                elif event[0] == "about_info":
+                    self._set_about_info(event[1])
                 elif event[0] == "confirm":
                     event[1]["answer"] = messagebox.askyesno(TEXT[self.language]["confirm"], TEXT[self.language]["confirm"], parent=self.root); event[1]["event"].set()
                 elif event[0] == "tts_conflict":
