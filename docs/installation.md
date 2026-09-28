@@ -62,6 +62,12 @@ Close PowerShell, open a new window, and then verify it with:
 slidemovie -g
 ```
 
+For an existing Windows installation that displays `ModuleNotFoundError: No module named 'readline'`, run the following and try again:
+
+```powershell
+python3 -m pip install pyreadline3
+```
+
 ## 2. Install External Tools
 
 `slidemovie` acts as a conductor for several powerful command-line tools. You must install these on your system for the program to work.
@@ -139,30 +145,17 @@ Next, please refer to the **[Configuration](../configuration/)** page. Edit the 
 
 `slidemovie` uses `multiai-tts` for text-to-speech. API credentials are managed using the same configuration mechanism as [`multiai`](https://sekika.github.io/multiai/).
 
-The easiest method is to set the credentials as environment variables.
+Credentials can be stored in the `multiai` settings file. `multiai` reads settings from `~/.multiai` and then from `./.multiai`, with project-level settings taking precedence. On Windows, open the user settings file in Notepad from PowerShell:
 
-For **Google Gemini**:
-
-```sh
-export GOOGLE_API_KEY="your-api-key"
+```powershell
+notepad ~/.multiai
 ```
 
-For **OpenAI**:
+On macOS, open it in TextEdit:
 
-```sh
-export OPENAI_API_KEY="your-api-key"
+```bash
+open -e ~/.multiai
 ```
-
-For **Azure Speech**:
-
-```sh
-export AZURE_TTS_API_KEY="your-api-key"
-export AZURE_TTS_REGION="japaneast"
-```
-
-Replace `japaneast` with the region of your Azure Speech resource. Note that Azure TTS uses an **Azure Speech API key**, not an Azure OpenAI API key.
-
-Alternatively, the credentials can be stored in the `multiai` settings file. `multiai` reads settings from `~/.multiai` and then from `./.multiai`, with project-level settings taking precedence.
 
 For example:
 
@@ -178,7 +171,7 @@ region = japaneast
 
 You only need to configure the credentials for the TTS provider selected by `tts_provider` in the `slidemovie` configuration file.
 
-For more information, including the complete `multiai` configuration format, see the official [`multiai` documentation](https://sekika.github.io/multiai/).
+For environment-variable setup and the complete `multiai` configuration format, see the official [`multiai` documentation](https://sekika.github.io/multiai/).
 
 > **Note:** Without valid credentials for the selected provider (`google`, `openai`, or `azure`), audio generation will fail.
 

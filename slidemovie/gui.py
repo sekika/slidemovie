@@ -128,7 +128,7 @@ TEXT = {
         "idle": "待機中", "running": "実行中", "success": "成功", "failed": "失敗",
         "yes": "使用する", "no": "使用しない",
         "missing": "status.json はまだ作成されていません。", "no_project": "状態を表示するにはプロジェクト名を入力してください。",
-        "invalid": "入力内容を確認してください。", "action_required": "実行内容を指定してください。", "folder_not_found": "フォルダーが存在しません。", "done": "ビルドが完了しました。",
+        "invalid": "入力内容を確認してください。", "action_required": "実行内容を選んでください。", "folder_not_found": "フォルダーが存在しません。", "done": "ビルドが完了しました。",
         "source_folder_missing": "ソースフォルダが存在しません。", "project_name_required": "プロジェクト名を入れてください。",
         "subproject_name_required": "サブプロジェクト名を入れてください。", "input_folder_missing": "入力ファイルのフォルダー ({path}) が存在しません。",
         "subfolder_required": "ソースフォルダー直下のフォルダーを選択してください。",

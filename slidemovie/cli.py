@@ -11,7 +11,10 @@ import slidemovie
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    datefmt='%Y-%m-%d %H:%M:%S',
+    # PowerShell treats any normal stderr output from a native command as a
+    # NativeCommandError.  Build progress is informational, not an error.
+    stream=sys.stdout,
 )
 logger = logging.getLogger(__name__)
 

@@ -63,6 +63,12 @@ PowerShell を閉じて新しく開いた後、次を実行して確認してく
 slidemovie -g
 ```
 
+Windows で `ModuleNotFoundError: No module named 'readline'` と表示される既存のインストールでは、次を実行してからもう一度試してください。
+
+```powershell
+python3 -m pip install pyreadline3
+```
+
 ## 2. 外部ツールのインストール
 
 `slidemovie` は、いくつかの強力なコマンドラインツールの指揮者のような役割を果たします。プログラムを動作させるには、以下のツールをシステムにインストールする必要があります。
@@ -140,30 +146,17 @@ python3 -m slidemovie.cli --init-config
 
 `slidemovie` は音声合成に `multiai-tts` を使用しています。API認証情報は [`multiai`](https://sekika.github.io/multiai/) と同じ方法で設定します。
 
-もっとも簡単なのは、環境変数に認証情報を設定する方法です。
+認証情報は `multiai` の設定ファイルに保存できます。`multiai` は `~/.multiai`、続いて `./.multiai` の設定を読み込み、プロジェクト側の設定が優先されます。Windows の PowerShell では、次のコマンドでユーザー設定ファイルをメモ帳で開いて編集できます。
 
-**Google Gemini** の場合：
-
-```sh
-export GOOGLE_API_KEY="your-api-key"
+```powershell
+notepad ~/.multiai
 ```
 
-**OpenAI** の場合：
+macOS では、次のコマンドで TextEdit を使って開けます。
 
-```sh
-export OPENAI_API_KEY="your-api-key"
+```bash
+open -e ~/.multiai
 ```
-
-**Azure Speech** の場合：
-
-```sh
-export AZURE_TTS_API_KEY="your-api-key"
-export AZURE_TTS_REGION="japaneast"
-```
-
-`japaneast` の部分は、使用している Azure Speech リソースのリージョンに置き換えてください。Azure TTS で使用するのは **Azure Speech の API キー**であり、Azure OpenAI の API キーではありません。
-
-環境変数の代わりに、`multiai` の設定ファイルに認証情報を保存することもできます。`multiai` は `~/.multiai`、続いて `./.multiai` の設定を読み込み、プロジェクト側の設定が優先されます。
 
 例えば、次のように設定します。
 
@@ -179,7 +172,7 @@ region = japaneast
 
 `slidemovie` の設定ファイルで `tts_provider` に指定した TTS プロバイダについてのみ、認証情報を設定すれば利用できます。
 
-設定方法や `multiai` の設定ファイル全体の形式については、公式の [`multiai` ドキュメント](https://sekika.github.io/multiai/) を参照してください。
+環境変数を使う方法や `multiai` の設定ファイル全体の形式については、公式の [`multiai` ドキュメント](https://sekika.github.io/multiai/) を参照してください。
 
 > **注意:** 選択したプロバイダ（`google`、`openai`、`azure`）に対応する有効な認証情報が設定されていない場合、音声生成は失敗します。
 
