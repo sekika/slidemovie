@@ -88,7 +88,7 @@ def test_run_preflight_checks_project_inputs_in_display_order(tmp_path):
     assert run_preflight_message("ja", str(source), "demo", False, "", False, True, False) == "マークダウンファイル (demo.md) が存在しません。"
 
     (source / "demo.md").write_text("# Demo", encoding="utf-8")
-    assert run_preflight_message("ja", str(source), "demo", False, "", False, False, False) == "実行内容を指定してください。"
+    assert run_preflight_message("ja", str(source), "demo", False, "", False, False, False) == "実行内容を選んでください。"
     assert run_preflight_message("ja", str(source), "demo", False, "", False, True, False) == "まずは PPTX を生成してください。"
     assert run_preflight_message("ja", str(source), "demo", False, "", False, True, True) == "PDFファイル (demo.pdf) が存在しません。"
 
