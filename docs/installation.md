@@ -119,15 +119,19 @@ If a command is still unavailable after installing with `winget`, sign out of Wi
 
 ### 1. Select the TTS Model
 
-First, run the `slidemovie` command without any arguments:
+First, create the user configuration file:
 
-```bash
-slidemovie
+```powershell
+slidemovie --init-config
 ```
 
-Since no options are provided, this will result in an error. **This is expected behavior.** By running this command, a default configuration file is automatically created at:
+If the `slidemovie` command is unavailable, run:
 
-`~/.config/slidemovie/config.json`
+```powershell
+python3 -m slidemovie.cli --init-config
+```
+
+This command creates the default configuration file and exits. Its location is `~/.config/slidemovie/config.json` on macOS and Linux, and `C:\Users\<username>\.config\slidemovie\config.json` on Windows.
 
 Next, please refer to the **[Configuration](../configuration/)** page. Edit the `tts_provider`, `tts_model`, and `tts_voice` settings in this file to select the Text-to-Speech model you wish to use.
 

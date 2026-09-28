@@ -34,6 +34,15 @@ def test_cli_gui_starts_without_project_name(mocker):
     assert initial["tts_provider"] == "openai"
     assert "tts_provider" in initial["overrides"]
 
+
+def test_cli_init_config_starts_movie_without_a_project_name(mock_movie_class):
+    """--init-config initializes defaults without requiring a project."""
+    with patch.object(sys, "argv", ["slidemovie", "--init-config"]):
+        cli.main()
+
+    mock_movie_class.assert_called_once()
+    mock_movie_class.return_value.load_project_config.assert_not_called()
+
 def test_cli_pptx_mode(mock_movie_class):
     """Test the --pptx option."""
     test_args = ['slidemovie', 'MyProject', '--pptx']

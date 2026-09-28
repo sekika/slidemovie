@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import os
 import sys
 import logging
 import slidemovie
@@ -123,6 +124,11 @@ def main():
         action="store_true",
         help="Open the Tkinter GUI. Other supplied options become its initial values."
     )
+    parser.add_argument(
+        "--init-config",
+        action="store_true",
+        help="Create the user configuration file with default values, then exit."
+    )
 
     args = parser.parse_args()
 
@@ -134,8 +140,8 @@ def main():
             sys.exit(exit_code)
         return
 
-    if not args.project_name:
-        parser.error("project_name is required unless --gui is specified")
+    if not args.project_name and not args.init_config:
+        parser.error("project_name is required unless --gui or --init-config is specified")
 
     # 1. Initialize Movie instance (Load configuration files)
     try:
@@ -147,6 +153,13 @@ def main():
     except Exception as e:
         logger.error(f"Failed to initialize Movie class: {e}")
         sys.exit(1)
+
+    if args.init_config:
+        # Movie initialization creates the file when it is absent.  Keep this
+        # explicit command separate from the required project-name workflow.
+        config_path = os.path.expanduser("~/.config/slidemovie/config.json")
+        logger.info("User configuration is ready: %s", config_path)
+        return
 
     # Load the config beside the Markdown input before applying CLI overrides.
     movie.load_project_config(args.source_dir, args.sub or "")

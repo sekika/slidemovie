@@ -120,13 +120,19 @@ magick -version
 
 ### 1. TTS モデルの選択
 
-まず、引数なしで `slidemovie` コマンドを実行してください。
+まず、ユーザー設定ファイルを作成するために、次を実行してください。
 
-```bash
-slidemovie
+```powershell
+slidemovie --init-config
 ```
 
-オプションがないためエラーが出ますが、**これは想定された動作です**。この実行により、デフォルトの設定ファイルが `~/.config/slidemovie/config.json` に自動作成されます。
+`slidemovie` コマンドが見つからない場合は、次を実行してください。
+
+```powershell
+python3 -m slidemovie.cli --init-config
+```
+
+このコマンドはデフォルトの設定ファイルを作成して終了します。保存先は macOS / Linux では `~/.config/slidemovie/config.json`、Windows では `C:\Users\<ユーザー名>\.config\slidemovie\config.json` です。
 
 次に、**[設定ファイル](../configuration/)** のページを参考にこのファイルを編集し、`tts_provider`, `tts_model`, `tts_voice` の項目を変更して、使用する TTS モデルを設定してください。
 

@@ -14,8 +14,8 @@ parent: Introduction
 The program loads settings in the following order (later sources override earlier ones):
 
 1.  **Built-in Defaults**: Hardcoded in the program.
-2.  **User Config**: `~/.config/slidemovie/config.json` (Home directory).
-    *   **Note**: If this file does not exist, it will be automatically created with default values on the first run.
+2.  **User Config**: `~/.config/slidemovie/config.json` on macOS and Linux; `C:\Users\<username>\.config\slidemovie\config.json` on Windows.
+    *   **Note**: Run `slidemovie --init-config` to create this file with default values.
 3.  **Local Project Config**: `config.json` in the directory containing the input Markdown file. For a regular project, this is `source-folder/config.json`; for a subproject, it is `source-folder/subproject/config.json`.
 4.  **CLI Arguments**: Command-line flags (highest priority for specific settings).
 
