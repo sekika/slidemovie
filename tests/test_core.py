@@ -159,6 +159,18 @@ Note A
         assert slides[1]['video_file'] == 'demo.mp4'
 
 class TestBuildLogic:
+    def test_windows_uses_magick_not_the_system_convert_command(self, movie, mocker):
+        """Windows convert.exe is not ImageMagick and must never be selected."""
+        mocker.patch("slidemovie.core.sys.platform", "win32")
+        mocker.patch("slidemovie.core.shutil.which", side_effect=lambda name: (
+            "C:/Windows/System32/convert.exe" if name == "convert" else None))
+
+        assert movie._resolve_imagemagick_cmd() is None
+
+        mocker.patch("slidemovie.core.shutil.which", side_effect=lambda name: (
+            "C:/Program Files/ImageMagick/magick.exe" if name == "magick" else None))
+        assert movie._resolve_imagemagick_cmd() == ["magick", "convert"]
+
     def test_windows_libreoffice_path_is_available_to_pptx_converter(self, movie, tmp_path, mocker):
         """Use the normal winget install location when soffice is not on PATH."""
         program_dir = tmp_path / "LibreOffice" / "program"

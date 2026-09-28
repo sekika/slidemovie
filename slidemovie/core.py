@@ -81,6 +81,10 @@ class Movie():
             list[str] or None: Command prefix, e.g. ['convert'] or ['magick', 'convert'],
             or None if ImageMagick is not available.
         """
+        # Windows ships a different ``convert.exe`` command.  Never select it
+        # for image processing; the ImageMagick 7 executable is ``magick``.
+        if sys.platform == "win32":
+            return ["magick", "convert"] if shutil.which("magick") else None
         if shutil.which("convert"):
             return ["convert"]
         if shutil.which("magick"):
