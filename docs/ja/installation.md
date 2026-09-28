@@ -20,9 +20,16 @@ python3 --version
 
 Python 2 と Python 3 が区別される環境では、以降のコマンドも `python3 -m pip` を使用してください。
 
+`pip` がまだ利用できない場合は、パッケージをインストールする前に次を実行してください。
+
+```bash
+python3 -m ensurepip --upgrade
+python3 -m pip install --upgrade pip
+```
+
 ## 1. Python パッケージのインストール
 
-最も簡単な方法は pip を使うことです。ターミナル（またはコマンドプロンプト）を開き、以下を実行してください。
+最も簡単な方法は pip を使うことです。Windows では PowerShell を、macOS / Linux ではターミナルを開き、以下を実行してください。
 
 ```bash
 python3 -m pip install slidemovie

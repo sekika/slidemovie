@@ -19,9 +19,16 @@ python3 --version
 
 Use `python3 -m pip` in the following commands when your system distinguishes Python 3 from an older Python installation.
 
+If `pip` is not available yet, run the following commands before installing the package:
+
+```bash
+python3 -m ensurepip --upgrade
+python3 -m pip install --upgrade pip
+```
+
 ## 1. Install the Python Package
 
-The easiest way to install `slidemovie` is via pip. Open your terminal or command prompt and run:
+The easiest way to install `slidemovie` is via pip. On Windows, open PowerShell; on macOS or Linux, open a terminal. Then run:
 
 ```bash
 python3 -m pip install slidemovie
