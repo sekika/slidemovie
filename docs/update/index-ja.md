@@ -11,7 +11,7 @@ permalink: /ja/release/
 
 ## 仕様
 
-以下は、各バージョンで実施した変更内容をまとめた仕様書の一覧です。これらの仕様書は、Claude Code または Codex を用いてコードを変更した際に作成されたものです。そのため、いずれも使用せずに行った軽微な修正については記載されていません。
+以下は、各バージョンで実施した変更内容をまとめた仕様書の一覧です。これらの仕様書は、Claude Code または Codex を用いてコードを変更した際に作成されたものです。仕様書を作成せずに行った軽微な修正については記載されていません。
 
 {% assign specs = site.pages | where_exp: "p", "p.path contains 'update/update-'" | sort: "version" | reverse %}
 
