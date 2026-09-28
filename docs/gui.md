@@ -9,6 +9,8 @@ parent: Introduction
 
 The Tkinter GUI provides the same build workflow as the command line without requiring every option to be typed. Its appearance uses [Forest ttk theme](https://github.com/rdbende/Forest-ttk-theme) (MIT License).
 
+![slidemovie GUI project screen]({{ '/img/screen-en.png' | relative_url }})
+
 ## Start the GUI
 
 Run the following after installing slidemovie:

@@ -10,6 +10,8 @@ parent: はじめに
 
 Tkinter GUI では、多数のオプションを毎回コマンドへ入力せずに、CLI と同じビルド手順を実行できます。画面には [Forest ttk theme](https://github.com/rdbende/Forest-ttk-theme)（MIT License）を使用しています。
 
+![slidemovie GUI のプロジェクト画面]({{ '/img/screen-ja.png' | relative_url }})
+
 ## GUI を起動する
 
 slidemovie のインストール後、次を実行します。
