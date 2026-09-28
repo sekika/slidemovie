@@ -2,6 +2,7 @@ import os
 import json
 import pytest
 import sys
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 # Add parent directory to sys.path to import slidemovie module
@@ -170,6 +171,32 @@ Note A
         assert slides[1]['video_file'] == 'demo.mp4'
 
 class TestBuildLogic:
+    def test_regenerated_slide_image_replaces_the_previous_windows_destination(
+            self, movie, tmp_path, mocker):
+        """Image regeneration must replace an existing named slide PNG."""
+        movie.use_pdf = True
+        movie.pdf_file = str(tmp_path / "demo.pdf")
+        movie.movie_dir = str(tmp_path / "movie")
+        os.makedirs(movie.movie_dir)
+        (tmp_path / "demo.pdf").write_bytes(b"pdf")
+        destination = tmp_path / "movie" / "demo-01.png"
+        destination.write_bytes(b"old image")
+        state = {"images_task": {}}
+        mocker.patch.object(movie, "_load_audio_state", return_value=state)
+        mocker.patch.object(movie, "_save_audio_state")
+        mocker.patch.object(movie, "_hash_file", return_value="new-source")
+        mocker.patch.object(movie, "_normalize_image_to_screen")
+        mocker.patch.object(movie, "_extract_slide_notes", return_value={"demo-01": "notes"})
+
+        def create_intermediate(_source, output_dir):
+            (Path(output_dir) / "slide_1.png").write_bytes(b"new image")
+
+        mocker.patch.object(movie, "_convert_pdf_to_pngs", side_effect=create_intermediate)
+        movie.build_slide_images()
+
+        assert destination.read_bytes() == b"new image"
+        assert not (tmp_path / "movie" / "slide_1.png").exists()
+
     def test_final_video_rejects_a_missing_markdown_slide_clip(self, movie, tmp_path, mocker):
         """A partial set of slide MP4s must never become the final movie."""
         movie.movie_dir = str(tmp_path)

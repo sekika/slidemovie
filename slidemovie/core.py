@@ -600,7 +600,11 @@ class Movie():
                 break
             old_path = generated_files[i]
             new_path = os.path.join(self.movie_dir, f"{slide_id}.png")
-            os.rename(old_path, new_path)
+            # The source presentation may have changed while a previous image
+            # for this slide remains.  ``replace`` atomically supersedes that
+            # old generated image and, unlike ``rename`` on Windows, permits
+            # an existing destination.
+            os.replace(old_path, new_path)
 
         # 2. Save state
         state["images_task"] = {
