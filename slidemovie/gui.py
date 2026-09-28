@@ -100,11 +100,6 @@ def apply_forest_theme(root, ttk):
         root.tk.call("source", str(FOREST_THEME_PATH))
         style = ttk.Style(root)
         style.theme_use("forest-light")
-        # Forest defines the accent button's normal foreground, but its
-        # disabled state inherits the dark global foreground.  The Run button
-        # starts disabled, which made its text unreadable on the dark accent
-        # background with Tk 9 on macOS.
-        style.map("Accent.TButton", foreground=[("disabled", "#eeeeee")])
         return True
     except Exception as exc:
         logging.getLogger(__name__).warning("Could not load Forest ttk theme: %s", exc)
@@ -918,7 +913,7 @@ class SlideMovieApp:
         self.run_frame = ttk.LabelFrame(self.project_tab); self.run_frame.grid(row=3, column=0, sticky="ew", pady=(8, 0))
         self.run_frame.columnconfigure(3, weight=1)
         self.run_button = ttk.Button(self.run_frame, command=self.start,
-                                     state="disabled", style="Accent.TButton")
+                                     state="disabled", style="Run.TButton")
         self.run_button.grid(row=0, column=0, padx=4, pady=(4, 2), sticky="w")
         self.run_state_var = tk.StringVar()
         self.run_state_label = ttk.Label(self.run_frame, textvariable=self.run_state_var)

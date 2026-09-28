@@ -98,7 +98,15 @@ namespace eval ttk::theme::forest-light {
             AccentButton.button -children {
                 AccentButton.padding -children {
                     AccentButton.label -side left -expand true
-                } 
+                }
+            }
+        }
+
+        ttk::style layout Run.TButton {
+            RunButton.button -children {
+                RunButton.padding -children {
+                    RunButton.label -side left -expand true
+                }
             }
         }
 
@@ -292,6 +300,20 @@ namespace eval ttk::theme::forest-light {
                 disabled $I(rect-accent-hover) \
                 selected $I(rect-accent) \
                 pressed $I(rect-accent) \
+                active $I(rect-accent-hover) \
+            ] -border 4 -sticky nsew
+
+        # RunButton uses the accent background when available and the basic
+        # gray button background when disabled.  Accent.TButton itself uses
+        # its hover image for disabled widgets, which is too subtle for a
+        # primary action that starts out unavailable.
+        ttk::style configure Run.TButton -padding {8 4 8 4} -width -10 -anchor center -foreground #eeeeee
+        ttk::style map Run.TButton -foreground [list disabled $colors(-disabledfg)]
+
+        ttk::style element create RunButton.button image \
+            [list $I(rect-accent) \
+                disabled $I(rect-basic) \
+                pressed $I(rect-accent-hover) \
                 active $I(rect-accent-hover) \
             ] -border 4 -sticky nsew
 
