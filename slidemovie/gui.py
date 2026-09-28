@@ -144,12 +144,52 @@ def _windows_libreoffice_detail(executable):
     try:
         contents = version_file.read_text(encoding="utf-8", errors="replace")
     except OSError:
-        return f"detected ({executable})"
+        contents = ""
     match = re.search(r"^\s*(?:BuildVersion|ProductVersion)\s*=\s*(.+?)\s*$",
                       contents, flags=re.MULTILINE | re.IGNORECASE)
     if match:
         return f"{match.group(1)} ({executable})"
-    return f"detected ({executable})"
+    product_version = _windows_file_product_version(executable)
+    return (f"{product_version} ({executable})" if product_version
+            else f"detected ({executable})")
+
+
+def _windows_file_product_version(path):
+    """Read a Windows executable's ProductVersion resource without running it."""
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        version_api = ctypes.windll.version
+        size = version_api.GetFileVersionInfoSizeW(str(path), None)
+        if not size:
+            return ""
+        buffer = ctypes.create_string_buffer(size)
+        if not version_api.GetFileVersionInfoW(str(path), 0, size, buffer):
+            return ""
+
+        value = ctypes.c_void_p()
+        length = wintypes.UINT()
+        translations = []
+        if version_api.VerQueryValueW(
+                buffer, "\\VarFileInfo\\Translation",
+                ctypes.byref(value), ctypes.byref(length)) and length.value >= 4:
+            words = ctypes.cast(value, ctypes.POINTER(wintypes.WORD))
+            translations.append((words[0], words[1]))
+        # LibreOffice's Windows resources conventionally include this
+        # international English table; retain it as a fallback for unusual
+        # installations that omit the Translation entry.
+        translations.append((0x0409, 0x04E4))
+        for language, codepage in translations:
+            block = fr"\StringFileInfo\{language:04X}{codepage:04X}\ProductVersion"
+            if version_api.VerQueryValueW(
+                    buffer, block, ctypes.byref(value), ctypes.byref(length)) and length.value:
+                return ctypes.wstring_at(value, length.value).rstrip("\0")
+    except (AttributeError, OSError):
+        # This helper is only used on Windows, but retain a harmless fallback
+        # if the platform does not expose the version-resource API.
+        pass
+    return ""
 
 
 def collect_about_info(tk_version):
