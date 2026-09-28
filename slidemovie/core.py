@@ -87,6 +87,26 @@ class Movie():
             return ["magick", "convert"]
         return None
 
+    def _ensure_windows_libreoffice_on_path(self):
+        """Expose winget's standard LibreOffice location to pptxtoimages.
+
+        LibreOffice's Windows installer commonly places ``soffice.exe`` in
+        Program Files without adding that directory to PATH.  The PPTX helper
+        invokes ``soffice`` by name, so add only a verified installation path
+        to this process's environment.  This does not modify the user's PATH.
+        """
+        if sys.platform != "win32" or shutil.which("soffice"):
+            return
+        roots = (os.environ.get("ProgramFiles"),
+                 os.environ.get("ProgramW6432"),
+                 os.environ.get("ProgramFiles(x86)"))
+        for root in filter(None, roots):
+            program_dir = os.path.join(root, "LibreOffice", "program")
+            if os.path.isfile(os.path.join(program_dir, "soffice.exe")):
+                os.environ["PATH"] = program_dir + os.pathsep + os.environ.get("PATH", "")
+                logger.info("Using LibreOffice from %s", program_dir)
+                return
+
     def _get_default_settings(self):
         """
         Returns the default configuration dictionary.
@@ -545,6 +565,7 @@ class Movie():
         if use_pdf:
             self._convert_pdf_to_pngs(source_file, self.movie_dir)
         else:
+            self._ensure_windows_libreoffice_on_path()
             from pptxtoimages.tools import PPTXToImageConverter
             converter = PPTXToImageConverter(source_file, self.movie_dir)
             converter.convert()

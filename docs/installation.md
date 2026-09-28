@@ -97,7 +97,9 @@ sudo apt install ffmpeg pandoc libreoffice poppler-utils imagemagick
 ```
 
 #### For Windows
-On Windows, use Windows Package Manager (`winget`) to install the tools without downloading each archive or manually editing PATH. Open [PowerShell](https://learn.microsoft.com/powershell/scripting/windows-powershell/starting-windows-powershell) and run:
+On Windows, use Windows Package Manager (`winget`) to install the tools without downloading each archive or manually editing PATH. Open [PowerShell](https://learn.microsoft.com/powershell/scripting/windows-powershell/starting-windows-powershell), then run the following commands **one at a time**. Confirm that each command finishes before proceeding to the next.
+
+If `winget` is unavailable, first update or install **App Installer** from the Microsoft Store.
 
 ```powershell
 winget install --id Gyan.FFmpeg --exact
@@ -107,13 +109,13 @@ winget install --id oschwartz10612.Poppler --exact
 winget install --id ImageMagick.ImageMagick --exact
 ```
 
-If `winget` is unavailable, update or install **App Installer** from the Microsoft Store. After installation, close PowerShell and open a new window, then verify the commands:
+After all installations finish, close PowerShell and open a new window. This applies the PATH changes; then verify the commands:
 
 ```powershell
 ffmpeg -version
 ffprobe -version
 pandoc --version
-pdftoppm -v
+Get-Command pdftoppm
 magick -version
 ```
 

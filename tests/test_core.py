@@ -159,6 +159,19 @@ Note A
         assert slides[1]['video_file'] == 'demo.mp4'
 
 class TestBuildLogic:
+    def test_windows_libreoffice_path_is_available_to_pptx_converter(self, movie, tmp_path, mocker):
+        """Use the normal winget install location when soffice is not on PATH."""
+        program_dir = tmp_path / "LibreOffice" / "program"
+        program_dir.mkdir(parents=True)
+        (program_dir / "soffice.exe").touch()
+        mocker.patch.dict(os.environ, {"ProgramFiles": str(tmp_path)}, clear=False)
+        mocker.patch("slidemovie.core.sys.platform", "win32")
+        mocker.patch("slidemovie.core.shutil.which", return_value=None)
+
+        movie._ensure_windows_libreoffice_on_path()
+
+        assert str(program_dir) in os.environ["PATH"].split(os.pathsep)
+
     def test_build_slide_pptx(self, movie, tmp_path, mocker):
         """Test if the pandoc command is constructed and called correctly."""
         # Setup files
