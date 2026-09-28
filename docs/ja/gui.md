@@ -61,9 +61,9 @@ slidemovie -g
 
 画面表示は日本語と英語を切り替えられます。
 
-## About
+## 情報
 
-**About** タブには、アイコン、実行中の `slidemovie` バージョン、選択中の言語に対応する **公式サイト** ボタン、GitHub Issues を開く **フィードバック** ボタンを表示します。また、OS、Python、Tk、ロケール、作業ディレクトリ、設定ファイルの場所、関連 Python パッケージ、FFmpeg・Pandoc・LibreOffice・Poppler・ImageMagick の検出パスとバージョンを確認できます。
+**情報** タブには、アイコン、実行中の `slidemovie` バージョン、選択中の言語に対応する **公式サイト** ボタン、GitHub Issues を開く **フィードバック** ボタンを表示します。また、OS、Python、Tk、ロケール、作業ディレクトリ、設定ファイルの場所、関連 Python パッケージ、FFmpeg・Pandoc・LibreOffice・Poppler・ImageMagick の検出パスとバージョンを確認できます。
 
 **情報をクリップボードにコピー** を押すと、トラブルシューティングに必要な情報をまとめてコピーできます。API キー、プロンプト、`status.json` の内容、PATH は含めません。
 
