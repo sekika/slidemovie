@@ -11,7 +11,7 @@ Before you can generate videos, you need to set up the Python package and severa
 
 ## Prerequisite: Python 3
 
-`slidemovie` requires Python 3.8 or later. Install Python 3 for your operating system before continuing, then confirm it is available:
+`slidemovie` requires Python 3.8 or later. Install [Python 3](https://www.python.org/) for your operating system before continuing, then confirm it is available:
 
 ```bash
 python3 --version
@@ -28,7 +28,7 @@ python3 -m pip install --upgrade pip
 
 ## 1. Install the Python Package
 
-The easiest way to install `slidemovie` is via pip. On Windows, open PowerShell; on macOS or Linux, open a terminal. Then run:
+The easiest way to install `slidemovie` is via pip. On Windows, open [PowerShell](https://learn.microsoft.com/powershell/scripting/windows-powershell/starting-windows-powershell); on macOS or Linux, open a terminal. Then run:
 
 ```bash
 python3 -m pip install slidemovie
@@ -65,7 +65,7 @@ sudo apt install ffmpeg pandoc libreoffice poppler-utils imagemagick
 ```
 
 #### For Windows
-On Windows, use Windows Package Manager (`winget`) to install the tools without downloading each archive or manually editing PATH. Open PowerShell and run:
+On Windows, use Windows Package Manager (`winget`) to install the tools without downloading each archive or manually editing PATH. Open [PowerShell](https://learn.microsoft.com/powershell/scripting/windows-powershell/starting-windows-powershell) and run:
 
 ```powershell
 winget install --id Gyan.FFmpeg --exact

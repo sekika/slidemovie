@@ -12,7 +12,7 @@ parent: はじめに
 
 ## 前提条件: Python 3
 
-`slidemovie` には Python 3.8 以降が必要です。先に使用している OS 向けの Python 3 をインストールし、次のコマンドで利用できることを確認してください。
+`slidemovie` には Python 3.8 以降が必要です。先に使用している OS 向けの [Python 3](https://www.python.org/) をインストールし、次のコマンドで利用できることを確認してください。
 
 ```bash
 python3 --version
@@ -29,7 +29,7 @@ python3 -m pip install --upgrade pip
 
 ## 1. Python パッケージのインストール
 
-最も簡単な方法は pip を使うことです。Windows では PowerShell を、macOS / Linux ではターミナルを開き、以下を実行してください。
+最も簡単な方法は pip を使うことです。Windows では [PowerShell](https://learn.microsoft.com/powershell/scripting/windows-powershell/starting-windows-powershell) を、macOS / Linux ではターミナルを開き、以下を実行してください。
 
 ```bash
 python3 -m pip install slidemovie
@@ -52,7 +52,7 @@ python3 -m pip install slidemovie
 ### インストールコマンド
 
 #### macOS の場合 (Homebrew 使用)
-Homebrew がインストールされていない場合は [brew.sh](https://brew.sh/index_ja) を参照してください。
+Homebrew がインストールされていない場合は [brew.sh](https://brew.sh/ja/) を参照してください。
 
 ```bash
 brew install ffmpeg pandoc poppler imagemagick
@@ -66,7 +66,7 @@ sudo apt install ffmpeg pandoc libreoffice poppler-utils imagemagick
 ```
 
 #### Windows の場合
-Windows では、Windows Package Manager（`winget`）を使うと、各ツールを個別にダウンロードしたり PATH を手動で設定したりせずに導入できます。PowerShell を開き、次を実行してください。
+Windows では、Windows Package Manager（`winget`）を使うと、各ツールを個別にダウンロードしたり PATH を手動で設定したりせずに導入できます。[PowerShell](https://learn.microsoft.com/powershell/scripting/windows-powershell/starting-windows-powershell) を開き、次を実行してください。
 
 ```powershell
 winget install --id Gyan.FFmpeg --exact
