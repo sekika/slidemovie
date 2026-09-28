@@ -31,6 +31,7 @@ The process creates a synergy between automation and human design:
 
 *   **Markdown-Based**: Version control your video scripts just like code.
 *   **CLI, GUI, and API**: Create presentations and videos from the command line, the Tkinter GUI, or Python code via the `Movie` API.
+*   **Cross-platform**: Supports Windows, macOS, and Linux.
 *   **AI Narration**: Utilizes Google Gemini, OpenAI, Azure, or VOICEVOX to generate natural-sounding voiceovers.
 *   **No Video Editing Required**: The timing of the video is automatically adjusted to match the length of the narration.
 *   **Incremental Builds**: If you change a single slide's script, the tool only regenerates that specific part, saving time and API costs.

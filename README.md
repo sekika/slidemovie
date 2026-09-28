@@ -22,6 +22,7 @@
 
 *   **Markdown-Based**: Write your slide content and narration script in a single text file.
 *   **CLI, GUI, and API**: Build from the command line, the Tkinter GUI (`slidemovie -g`), or Python code via the `Movie` API.
+*   **Cross-platform**: Supports Windows, macOS, and Linux.
 *   **AI Narration**: Automatically generates natural voiceovers using **Google Gemini**, **OpenAI**, **Azure**, or **VOICEVOX** (via `multiai-tts`).
 *   **PowerPoint Integration**: Use PowerPoint's AI "Designer" to create professional visuals instantly.
 *   **No Video Editing**: Audio and visuals are automatically synchronized.
