@@ -47,4 +47,10 @@ slidemovie = "slidemovie.cli:main"
 packages = ["slidemovie"]
 
 [tool.setuptools.package-data]
-slidemovie = ["assets/*.png"]
+slidemovie = [
+    "assets/*.png",
+    "assets/forest/LICENSE",
+    "assets/forest/NOTICE",
+    "assets/forest/*.tcl",
+    "assets/forest/forest-light/*.png",
+]

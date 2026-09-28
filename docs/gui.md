@@ -7,7 +7,7 @@ parent: Introduction
 
 # GUI Guide
 
-The Tkinter GUI provides the same build workflow as the command line without requiring every option to be typed.
+The Tkinter GUI provides the same build workflow as the command line without requiring every option to be typed. Its appearance uses [Forest ttk theme](https://github.com/rdbende/Forest-ttk-theme) (MIT License).
 
 ## Start the GUI
 
@@ -19,12 +19,16 @@ slidemovie -g
 
 Command-line values can prefill the GUI. For example, `slidemovie demo -g --video` enters `demo` and selects video generation.
 
+When you close the window, its width and height are saved to `~/.config/slidemovie/gui.json` and restored on the next launch. Its screen position is not saved.
+
 ## Build a project
 
 1. Set **Source folder** and **Project name**.
 2. Under **Actions**, select **Build PPTX**, **Build video**, or both.
-3. For a video made from a PDF, select **PDF** under **Video source**.
-4. Click **Run**.
+3. In **Video source** beside **Build video**, select **PPTX** normally, or **PDF** for a video made from a PDF.
+4. Click **Run** in the separate **Run** section.
+
+While a build is running and after it completes, the area to the right of **Run** shows **Running**, **Succeeded**, or **Failed**. Changing the source folder, project name, or subproject name clears the result from the previous project.
 
 Use **Input files** and **Output files** under **Open folder** to open the actual project source and output directories in your file manager.
 

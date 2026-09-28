@@ -6,7 +6,8 @@ from unittest.mock import MagicMock
 from slidemovie.gui import (apply_stored_tts_config, display_path_value, display_setting_value, open_folder,
                             build_settings_from_status, load_stored_tts_config, official_website_url, options_from_args,
                             display_prompt_separator, display_source_path, parse_prompt_separator, parse_screen_size, project_folder_paths, run_build, SlideMovieApp,
-                            default_project_name_from_status, gui_title, load_local_config, local_config_path, pptx_display_status, run_preflight_message, save_local_config, summarize_status, TEXT)
+                            default_project_name_from_status, FOREST_THEME_PATH, gui_title, load_local_config, local_config_path, pptx_display_status, run_preflight_message, save_local_config, summarize_status, TEXT)
+from slidemovie.gui import load_window_size, save_window_size, window_size_for_screen
 
 
 def _args(**changes):
@@ -56,6 +57,27 @@ def test_display_source_path_expands_the_current_or_relative_directory():
 def test_gui_title_is_not_hard_coded_to_the_initial_gui_release():
     assert gui_title().startswith("slidemovie")
     assert TEXT["ja"]["title"] == gui_title()
+
+
+def test_forest_theme_assets_are_bundled():
+    assert FOREST_THEME_PATH.is_file()
+    assert (FOREST_THEME_PATH.parent / "forest-light").is_dir()
+
+
+def test_window_size_preferences_save_only_dimensions_and_fit_the_display(tmp_path):
+    path = tmp_path / "gui.json"
+    save_window_size(1200, 800, str(path))
+
+    assert json.loads(path.read_text(encoding="utf-8")) == {"width": 1200, "height": 800}
+    assert load_window_size(str(path)) == (1200, 800)
+    assert window_size_for_screen((1200, 800), 1000, 700) == (960, 620)
+
+
+def test_invalid_window_size_preferences_are_ignored(tmp_path):
+    path = tmp_path / "gui.json"
+    path.write_text('{"width": true, "height": 600}', encoding="utf-8")
+
+    assert load_window_size(str(path)) is None
 
 
 def test_local_config_path_is_next_to_the_subproject_markdown_input():

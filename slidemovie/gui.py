@@ -77,6 +77,8 @@ OFFICIAL_WEBSITES = {
 FEEDBACK_URL = "https://github.com/sekika/slidemovie/issues"
 
 WINDOW_ICON_PATH = Path(__file__).with_name("assets") / "slidemovie.png"
+FOREST_THEME_PATH = Path(__file__).with_name("assets") / "forest" / "forest-light.tcl"
+GUI_CONFIG_PATH = os.path.join(os.path.expanduser("~"), ".config", "slidemovie", "gui.json")
 
 
 def gui_title():
@@ -90,6 +92,23 @@ def gui_title():
 
 
 GUI_TITLE = gui_title()
+
+
+def apply_forest_theme(root, ttk):
+    """Load the bundled Forest light theme, retaining a usable fallback."""
+    try:
+        root.tk.call("source", str(FOREST_THEME_PATH))
+        style = ttk.Style(root)
+        style.theme_use("forest-light")
+        # Forest defines the accent button's normal foreground, but its
+        # disabled state inherits the dark global foreground.  The Run button
+        # starts disabled, which made its text unreadable on the dark accent
+        # background with Tk 9 on macOS.
+        style.map("Accent.TButton", foreground=[("disabled", "#eeeeee")])
+        return True
+    except Exception as exc:
+        logging.getLogger(__name__).warning("Could not load Forest ttk theme: %s", exc)
+        return False
 
 
 def _tool_executable(command):
@@ -119,6 +138,7 @@ def collect_about_info(tk_version):
         f"Python: {sys.version.replace(chr(10), ' ')}",
         f"Python executable: {sys.executable}",
         f"Tk: {tk_version or '-'}",
+        "GUI theme: Forest ttk theme (https://github.com/rdbende/Forest-ttk-theme)",
         f"Working directory: {os.getcwd()}",
         f"User config: {os.path.join(os.path.expanduser('~'), '.config', 'slidemovie', 'config.json')}",
         "",
@@ -193,7 +213,7 @@ TEXT = {
         "separator": "Prompt separator", "chunk": "Chunk size", "split": "Split characters",
         "overflow": "On no split", "screen_size": "Screen size", "image_pad_color": "Image padding color", "video_fps": "Video FPS", "silence_sec": "Silence (seconds)", "restore": "Restore settings", "status": "Project status",
         "save_local": "Save to local config", "saved_local": "Saved local config: ", "save_failed": "Could not save local config: ",
-        "run": "Run", "clear": "Clear log", "website": "Website", "feedback": "Feedback", "copy_info": "Copy information", "info_copied": "Copied to clipboard", "collecting_info": "Collecting environment information…", "exit": "Exit",
+        "execution": "Run", "run": "Run", "clear": "Clear log", "website": "Website", "feedback": "Feedback", "copy_info": "Copy information", "info_copied": "Copied to clipboard", "collecting_info": "Collecting environment information…", "exit": "Exit",
         "running": "Running", "success": "Succeeded", "failed": "Failed",
         "yes": "Use", "no": "Do not use",
         "missing": "status.json has not been created.", "no_project": "Enter a project name to view status.",
@@ -228,7 +248,7 @@ TEXT = {
         "separator": "プロンプト区切り", "chunk": "チャンクサイズ", "split": "分割候補文字",
         "overflow": "分割不可時", "screen_size": "画面サイズ", "image_pad_color": "画像余白色", "video_fps": "動画 FPS", "silence_sec": "無音時間（秒）", "restore": "設定から戻す", "status": "プロジェクトの状態",
         "save_local": "ローカル設定に保存", "saved_local": "ローカル設定を保存しました: ", "save_failed": "ローカル設定を保存できません: ",
-        "run": "実行", "clear": "ログを消去", "website": "公式サイト", "feedback": "フィードバック", "copy_info": "情報をクリップボードにコピー", "info_copied": "クリップボードにコピーしました", "collecting_info": "環境情報を収集中…", "exit": "終了",
+        "execution": "実行", "run": "実行", "clear": "ログを消去", "website": "公式サイト", "feedback": "フィードバック", "copy_info": "情報をクリップボードにコピー", "info_copied": "クリップボードにコピーしました", "collecting_info": "環境情報を収集中…", "exit": "終了",
         "running": "実行中", "success": "成功", "failed": "失敗",
         "yes": "使用する", "no": "使用しない",
         "missing": "status.json はまだ作成されていません。", "no_project": "状態を表示するにはプロジェクト名を入力してください。",
@@ -319,6 +339,44 @@ def display_path_value(initial_options, settings, path_overrides, name):
 def display_source_path(path):
     """Expand the source directory so the GUI never presents an ambiguous '.'."""
     return os.path.abspath(os.path.expanduser(path or "."))
+
+
+def load_window_size(path=GUI_CONFIG_PATH):
+    """Return a previously saved GUI size, ignoring malformed preferences."""
+    try:
+        with open(path, encoding="utf-8") as config_file:
+            values = json.load(config_file)
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(values, dict):
+        return None
+    width, height = values.get("width"), values.get("height")
+    # bool is an int subclass but is not meaningful as a window dimension.
+    if (isinstance(width, bool) or isinstance(height, bool)
+            or not isinstance(width, int) or not isinstance(height, int)
+            or width <= 0 or height <= 0):
+        return None
+    return width, height
+
+
+def save_window_size(width, height, path=GUI_CONFIG_PATH):
+    """Persist only the GUI dimensions; window position is intentionally omitted."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as config_file:
+        json.dump({"width": int(width), "height": int(height)}, config_file, indent=2)
+        config_file.write("\n")
+
+
+def window_size_for_screen(saved_size, screen_width, screen_height):
+    """Fit a saved size onto the current display without retaining position."""
+    max_width, max_height = max(320, screen_width - 40), max(300, screen_height - 80)
+    default_width, default_height = min(900, max_width), min(680, max_height)
+    if saved_size is None:
+        return default_width, default_height
+    width, height = saved_size
+    min_width, min_height = min(640, max_width), min(400, max_height)
+    return (max(min_width, min(width, max_width)),
+            max(min_height, min(height, max_height)))
 
 
 def local_config_path(source_dir, subproject_name=""):
@@ -700,10 +758,13 @@ class SlideMovieApp:
         except tk.TclError:
             # The GUI remains usable if a platform cannot load the icon.
             self.window_icon = None
-        # Fit the initial window into small displays.  Content that does not
-        # fit is separated into tabs; the settings tab also scrolls.
+        self.forest_theme_active = apply_forest_theme(self.root, ttk)
+        # Restore the last dimensions, while fitting them onto a display that
+        # may have changed since the GUI was last used.  Position is never
+        # persisted, so the window manager chooses a suitable location.
         screen_width, screen_height = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
-        width, height = min(900, max(320, screen_width - 40)), min(680, max(300, screen_height - 80))
+        width, height = window_size_for_screen(
+            load_window_size(), screen_width, screen_height)
         self.root.geometry(f"{width}x{height}")
         self.root.minsize(min(640, width), min(400, height))
         outer = ttk.Frame(self.root, padding=10)
@@ -747,19 +808,37 @@ class SlideMovieApp:
         self.action_frame = ttk.LabelFrame(self.project_tab); self.action_frame.grid(row=2, column=0, sticky="ew", pady=(8, 0))
         self.pptx_check = ttk.Checkbutton(self.action_frame, variable=self.pptx_var, command=self._update_run_state); self.pptx_check.grid(row=0, column=0, padx=4)
         self.video_check = ttk.Checkbutton(self.action_frame, variable=self.video_var, command=self._update_run_state); self.video_check.grid(row=0, column=1, padx=4)
-        self.interactive_widgets.extend((self.pptx_check, self.video_check))
-        self.source_frame = ttk.LabelFrame(self.project_tab); self.source_frame.grid(row=3, column=0, sticky="ew", pady=(8, 0))
-        self.source_frame.columnconfigure(2, weight=1)
-        self.pdf_check = ttk.Checkbutton(self.source_frame, variable=self.pdf_var, command=self._update_run_state)
-        self.pdf_check.grid(row=0, column=0, padx=4, pady=2, sticky="w")
-        self.interactive_widgets.append(self.pdf_check)
-        self.run_button = ttk.Button(self.source_frame, command=self.start, state="disabled")
-        self.run_button.grid(row=1, column=0, padx=4, pady=(4, 2), sticky="w")
+        # A video source is meaningful only for video generation, so keep its
+        # PPTX/PDF selection directly beside that action rather than in its
+        # own section.  PPTX is the default unless --pdf was passed.
+        self.video_source_label = ttk.Label(self.action_frame)
+        self.video_source_label.grid(row=0, column=2, padx=(12, 2), sticky="w")
+        self.labels["source_type"] = self.video_source_label
+        self.pptx_source_radio = ttk.Radiobutton(
+            self.action_frame, text="PPTX", variable=self.pdf_var, value=False,
+            command=self._update_run_state,
+        )
+        self.pptx_source_radio.grid(row=0, column=3, padx=2, sticky="w")
+        self.pdf_source_radio = ttk.Radiobutton(
+            self.action_frame, text="PDF", variable=self.pdf_var, value=True,
+            command=self._update_run_state,
+        )
+        self.pdf_source_radio.grid(row=0, column=4, padx=2, sticky="w")
+        self.interactive_widgets.extend((
+            self.pptx_check, self.video_check, self.pptx_source_radio,
+            self.pdf_source_radio,
+        ))
+        # Keep the command and its validation feedback in a separate section.
+        self.run_frame = ttk.LabelFrame(self.project_tab); self.run_frame.grid(row=3, column=0, sticky="ew", pady=(8, 0))
+        self.run_frame.columnconfigure(2, weight=1)
+        self.run_button = ttk.Button(self.run_frame, command=self.start,
+                                     state="disabled", style="Accent.TButton")
+        self.run_button.grid(row=0, column=0, padx=4, pady=(4, 2), sticky="w")
         self.run_state_var = tk.StringVar()
-        self.run_state_label = ttk.Label(self.source_frame, textvariable=self.run_state_var)
-        self.run_state_label.grid(row=1, column=1, padx=4, pady=(4, 2), sticky="w")
-        self.run_check_label = ttk.Label(self.source_frame, textvariable=self.run_check_var, wraplength=max(250, width - 260))
-        self.run_check_label.grid(row=1, column=2, padx=4, pady=(4, 2), sticky="w")
+        self.run_state_label = ttk.Label(self.run_frame, textvariable=self.run_state_var)
+        self.run_state_label.grid(row=0, column=1, padx=4, pady=(4, 2), sticky="w")
+        self.run_check_label = ttk.Label(self.run_frame, textvariable=self.run_check_var, wraplength=max(250, width - 260))
+        self.run_check_label.grid(row=0, column=2, padx=4, pady=(4, 2), sticky="w")
         self.settings_canvas = tk.Canvas(self.settings_tab, highlightthickness=0)
         settings_scroll = ttk.Scrollbar(self.settings_tab, orient="vertical", command=self.settings_canvas.yview)
         self.settings_canvas.configure(yscrollcommand=settings_scroll.set)
@@ -886,12 +965,12 @@ class SlideMovieApp:
         for name, widget in self.labels.items():
             key = name.replace("_browse", "")
             widget.configure(text=text["browse"] if name.endswith("_browse") else text[key])
-        self.project_frame.configure(text=text["project"]); self.action_frame.configure(text=text["actions"]); self.source_frame.configure(text=text["source_type"]); self.settings_frame.configure(text=text["tts_settings"]); self.video_settings_frame.configure(text=text["video_format"]); self.general_settings_frame.configure(text=text["general"]); self.status_frame.configure(text=text["status"])
+        self.project_frame.configure(text=text["project"]); self.action_frame.configure(text=text["actions"]); self.run_frame.configure(text=text["execution"]); self.settings_frame.configure(text=text["tts_settings"]); self.video_settings_frame.configure(text=text["video_format"]); self.general_settings_frame.configure(text=text["general"]); self.status_frame.configure(text=text["status"])
         self.notebook.tab(self.project_tab, text=text["project"])
         self.notebook.tab(self.settings_tab, text=text["settings_tab"])
         self.notebook.tab(self.log_tab, text=text["log_tab"])
         self.notebook.tab(self.about_tab, text=text["about_tab"])
-        self.pptx_check.configure(text=text["pptx"]); self.video_check.configure(text=text["video"]); self.pdf_check.configure(text="PDF"); self.debug_check.configure(text=text["debug"])
+        self.pptx_check.configure(text=text["pptx"]); self.video_check.configure(text=text["video"]); self.debug_check.configure(text=text["debug"])
         self.use_prompt_label.configure(text=text["use_prompt"]); self.prompt_label.configure(text=text["prompt"]); self.separator_label.configure(text=text["separator"])
         self.restore_button.configure(text=text["restore"]); self.save_local_button.configure(text=text["save_local"]); self.run_button.configure(text=text["run"]); self.clear_button.configure(text=text["clear"]); self.about_website_button.configure(text=text["website"]); self.feedback_button.configure(text=text["feedback"]); self.copy_info_button.configure(text=text["copy_info"]); self.exit_button.configure(text=text["exit"])
         self.use_prompt_combo.configure(values=(text["yes"], text["no"]))
@@ -1382,6 +1461,11 @@ class SlideMovieApp:
         from tkinter import messagebox
         if self.running:
             messagebox.showwarning(TEXT[self.language]["running"], TEXT[self.language]["close_running"], parent=self.root); return
+        try:
+            # Save only the dimensions, not screen coordinates or project data.
+            save_window_size(self.root.winfo_width(), self.root.winfo_height())
+        except OSError as exc:
+            logging.getLogger(__name__).warning("Could not save GUI window size: %s", exc)
         self.root.destroy()
 
 
