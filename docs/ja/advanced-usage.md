@@ -10,6 +10,46 @@ parent: はじめに
 
 このセクションでは、差分ビルドシステム、ステータスファイルの直接操作、トラブルシューティングなど、パワーユーザー向けの機能を解説します。
 
+## Python API を使う
+
+コマンドラインの代わりに、Python から `Movie` を呼び出して動画を作成できます。複数のプロジェクトを順番にビルドする処理や、既存のPythonアプリケーションへの組み込みに便利です。API でも CLI と同じ `config.json`、差分ビルド、出力構成を使用します。
+
+次の例は、`demo.md` とデザイン済みの `demo.pptx` がある `projects/demo` フォルダーから動画を生成します。
+
+```python
+from pathlib import Path
+
+from slidemovie import Movie
+
+project_name = "demo"
+source_dir = Path("projects/demo")
+
+# 1. 設定を読み込み、外部コマンドを確認する
+movie = Movie()
+
+# 2. 入力・出力パスを決める。ここで projects/demo/config.json も読み込まれる
+movie.configure_project_paths(project_name, str(source_dir))
+
+# 3. 必要な設定だけを Python 側で上書きする
+movie.tts_provider = "openai"
+movie.tts_model = "tts-1"
+movie.tts_voice = "alloy"
+
+# 4. 音声、スライド画像、動画を生成して結合する
+movie.build_all()
+
+print(f"完成: {movie.video_file}")
+```
+
+処理の流れは次のとおりです。
+
+1. `Movie()` はユーザー設定と必要な外部コマンドを確認します。
+2. `configure_project_paths()` は `<プロジェクト名>.md`、`<プロジェクト名>.pptx`、出力先を設定し、同じフォルダーの `config.json` を読み込みます。出力先を省略した場合は `projects/demo/movie/demo/demo.mp4` です。
+3. TTS の声やモデルなど、Pythonから指定したい値はこの後に属性として設定します。これにより `config.json` の値を必要な項目だけ上書きできます。
+4. `build_all()` は Markdown の `::: notes` から音声を生成し、PPTX を画像化してから動画を結合します。変更のない成果物は再利用されます。
+
+PPTX の下書きを Markdown から作る場合は、`build_all()` の前に `movie.build_slide_pptx()` を呼びます。生成された PPTX を PowerPoint でデザイン・保存してから、改めて上のスクリプトで `build_all()` を実行してください。`build_all()` 自体は PPTX を更新しません。
+
 ## 差分ビルドシステム
 
 動画生成には時間がかかり、TTS API のコストもかかります。そのため、`slidemovie` は **差分ビルド（インクリメンタルビルド）** を行うように設計されています。

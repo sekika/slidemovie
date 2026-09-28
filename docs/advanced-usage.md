@@ -9,6 +9,46 @@ parent: Introduction
 
 This section covers features for power users, including the incremental build system, direct state manipulation, and troubleshooting.
 
+## Using the Python API
+
+Instead of using the command line, you can create videos from Python with `Movie`. This is useful for building several projects in sequence or integrating slidemovie into an existing Python application. The API uses the same `config.json`, incremental build behavior, and output layout as the CLI.
+
+This example creates a video from `demo.md` and a designed `demo.pptx` in `projects/demo`.
+
+```python
+from pathlib import Path
+
+from slidemovie import Movie
+
+project_name = "demo"
+source_dir = Path("projects/demo")
+
+# 1. Load settings and check external commands.
+movie = Movie()
+
+# 2. Set input/output paths. This also loads projects/demo/config.json.
+movie.configure_project_paths(project_name, str(source_dir))
+
+# 3. Override only the settings needed by this script.
+movie.tts_provider = "openai"
+movie.tts_model = "tts-1"
+movie.tts_voice = "alloy"
+
+# 4. Generate audio and slide images, then assemble the video.
+movie.build_all()
+
+print(f"Created: {movie.video_file}")
+```
+
+The flow is:
+
+1. `Movie()` loads the user configuration and checks the required external commands.
+2. `configure_project_paths()` sets the `<project name>.md`, `<project name>.pptx`, and output paths, and loads the `config.json` in the same folder. Without an explicit output path, this example writes `projects/demo/movie/demo/demo.mp4`.
+3. Set attributes such as the TTS voice and model afterwards to override only those `config.json` values from Python.
+4. `build_all()` generates audio from Markdown `::: notes`, turns the PPTX into images, and joins the clips. Unchanged artifacts are reused.
+
+To generate a draft PPTX from Markdown, call `movie.build_slide_pptx()` before `build_all()`. Design and save the resulting PPTX in PowerPoint, then run `build_all()` (normally in a later invocation). `build_all()` does not update the PPTX itself.
+
 ## Incremental Build System
 
 Video generation can be slow and expensive (TTS API costs). `slidemovie` is designed to be **incremental**.
