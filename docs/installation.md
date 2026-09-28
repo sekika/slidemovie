@@ -36,15 +36,9 @@ python3 -m pip install slidemovie
 
 This will automatically install the necessary Python dependencies, including `multiai-tts` and `pptxtoimages`.
 
-#### If Windows cannot find the `slidemovie` command
+#### Windows: add the `slidemovie` command to PATH
 
-Even after pip installs `slidemovie`, the `slidemovie` command cannot be run directly if Python's Scripts folder is not on PATH. You can always start the equivalent module command:
-
-```powershell
-python3 -m slidemovie.cli -g
-```
-
-To use the shorter `slidemovie -g` command thereafter, run the following once in PowerShell to add Python's Scripts folder to your user PATH:
+On Windows, run the following once in PowerShell to add Python's Scripts folder to your user PATH. This is required to run the `slidemovie` command directly:
 
 ```powershell
 $scriptsDir = python3 -c "import sysconfig; print(sysconfig.get_path('scripts'))"
@@ -60,12 +54,6 @@ Close PowerShell, open a new window, and then verify it with:
 
 ```powershell
 slidemovie -g
-```
-
-For an existing Windows installation that displays `ModuleNotFoundError: No module named 'readline'`, run the following and try again:
-
-```powershell
-python3 -m pip install pyreadline3
 ```
 
 ## 2. Install External Tools
@@ -131,12 +119,6 @@ First, create the user configuration file:
 
 ```powershell
 slidemovie --init-config
-```
-
-If the `slidemovie` command is unavailable, run:
-
-```powershell
-python3 -m slidemovie.cli --init-config
 ```
 
 This command creates the default configuration file and exits. Its location is `~/.config/slidemovie/config.json` on macOS and Linux, and `C:\Users\<username>\.config\slidemovie\config.json` on Windows.

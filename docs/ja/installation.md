@@ -37,15 +37,9 @@ python3 -m pip install slidemovie
 
 これにより、`multiai-tts` や `pptxtoimages` を含む必要な Python ライブラリが自動的にインストールされます。
 
-#### Windows で `slidemovie` コマンドが見つからない場合
+#### Windows: `slidemovie` コマンドを PATH に追加
 
-`pip` が `slidemovie` をインストールしても、Python の Scripts フォルダーが PATH に登録されていないと、`slidemovie` コマンドを直接実行できないことがあります。その場合でも、次の同等のコマンドで起動できます。
-
-```powershell
-python3 -m slidemovie.cli -g
-```
-
-以後 `slidemovie -g` のように短いコマンドを使うには、PowerShell で次を一度だけ実行して、Python の Scripts フォルダーをユーザー PATH に追加してください。
+Windows では、`slidemovie` コマンドを直接実行できるように、PowerShell で次を一度だけ実行して Python の Scripts フォルダーをユーザー PATH に追加してください。
 
 ```powershell
 $scriptsDir = python3 -c "import sysconfig; print(sysconfig.get_path('scripts'))"
@@ -61,12 +55,6 @@ PowerShell を閉じて新しく開いた後、次を実行して確認してく
 
 ```powershell
 slidemovie -g
-```
-
-Windows で `ModuleNotFoundError: No module named 'readline'` と表示される既存のインストールでは、次を実行してからもう一度試してください。
-
-```powershell
-python3 -m pip install pyreadline3
 ```
 
 ## 2. 外部ツールのインストール
@@ -132,12 +120,6 @@ magick -version
 
 ```powershell
 slidemovie --init-config
-```
-
-`slidemovie` コマンドが見つからない場合は、次を実行してください。
-
-```powershell
-python3 -m slidemovie.cli --init-config
 ```
 
 このコマンドはデフォルトの設定ファイルを作成して終了します。保存先は macOS / Linux では `~/.config/slidemovie/config.json`、Windows では `C:\Users\<ユーザー名>\.config\slidemovie\config.json` です。
