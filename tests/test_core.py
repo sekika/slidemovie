@@ -109,6 +109,17 @@ class TestPathConfiguration:
         assert movie.video_file.endswith("parent_proj-child_sub.mp4")
 
 class TestMarkdownProcessing:
+    def test_ensure_slide_ids_accepts_utf8_bom(self, movie, tmp_path):
+        """A Markdown file created by Windows Notepad still has an H1 slide."""
+        md_file = tmp_path / "bom.md"
+        md_file.write_text("# First slide\n", encoding="utf-8-sig")
+        movie.md_file = str(md_file)
+        movie.project_id = "bom"
+
+        movie._ensure_slide_ids()
+
+        assert "<!-- slide-id: bom-01 -->" in md_file.read_text(encoding="utf-8-sig")
+
     def test_ensure_slide_ids(self, movie, tmp_path):
         """Test if slide-ids are automatically injected into Markdown."""
         md_content = """# Slide 1

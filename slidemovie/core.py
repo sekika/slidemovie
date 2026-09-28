@@ -994,7 +994,9 @@ class Movie():
         if not os.path.exists(self.md_file):
             return
 
-        with open(self.md_file, encoding="utf-8") as f:
+        # Windows editors may save UTF-8 Markdown with a BOM.  ``utf-8-sig``
+        # removes it so that a first-line ``# Title`` remains a slide header.
+        with open(self.md_file, encoding="utf-8-sig") as f:
             lines = f.readlines()
 
         # 2. Extract existing slide-ids to prevent duplicates
@@ -1128,7 +1130,7 @@ class Movie():
         in_notes = False
         buffer = []
 
-        with open(self.md_file, encoding="utf-8") as f:
+        with open(self.md_file, encoding="utf-8-sig") as f:
             for line in f:
                 if line.startswith("<!-- slide-id:"):
                     current_id = line.strip()[len(
@@ -1184,7 +1186,7 @@ class Movie():
                     "notes": notes_text
                 })
 
-        with open(self.md_file, encoding="utf-8") as f:
+        with open(self.md_file, encoding="utf-8-sig") as f:
             for line in f:
                 stripped = line.strip()
 
@@ -1761,7 +1763,7 @@ class Movie():
         in_notes = False
         notes_buffer = []
 
-        with open(self.md_file, encoding="utf-8") as f:
+        with open(self.md_file, encoding="utf-8-sig") as f:
             for line in f:
                 # slide-id
                 if line.startswith("<!-- slide-id:"):
