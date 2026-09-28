@@ -98,6 +98,7 @@ TEXT = {
         "subproject_name_required": "Enter a subproject name.", "input_folder_missing": "Input-file folder ({path}) does not exist.",
         "subfolder_required": "Choose a folder directly inside the source folder.",
         "markdown_missing": "Markdown file ({filename}) does not exist.", "pptx_required": "Build the PPTX first.", "pdf_missing": "PDF file ({filename}) does not exist.",
+        "status_project_id_mismatch": "status.json belongs to a different project.",
         "failed_message": "Build failed. See the log for details.",
         "confirm": "TTS settings differ from status.json. Choose which settings to use.",
         "use_status": "Use status.json settings", "overwrite": "Overwrite with current settings",
@@ -132,6 +133,7 @@ TEXT = {
         "subproject_name_required": "サブプロジェクト名を入れてください。", "input_folder_missing": "入力ファイルのフォルダー ({path}) が存在しません。",
         "subfolder_required": "ソースフォルダー直下のフォルダーを選択してください。",
         "markdown_missing": "マークダウンファイル ({filename}) が存在しません。", "pptx_required": "まずは PPTX を生成してください。", "pdf_missing": "PDFファイル ({filename}) が存在しません。",
+        "status_project_id_mismatch": "status.json のプロジェクト ID が現在のプロジェクトと一致しません。",
         "failed_message": "ビルドに失敗しました。詳細はログを確認してください。",
         "confirm": "TTS 設定が status.json と異なります。使用する設定を選択してください。",
         "use_status": "status.json の設定を使う", "overwrite": "現在の設定で上書きする",
@@ -223,6 +225,24 @@ def local_config_path(source_dir, subproject_name=""):
     return os.path.join(input_dir, "config.json")
 
 
+def default_project_name_from_status(source_dir):
+    """Return the recorded project ID only when it identifies a local Markdown.
+
+    ``status.json`` is not enough to identify a project: it may have been
+    copied from another folder.  Requiring ``<project_id>.md`` prevents an
+    unrelated state file from silently selecting the wrong project in the UI.
+    """
+    source_dir = display_source_path(source_dir)
+    try:
+        with open(os.path.join(source_dir, "status.json"), encoding="utf-8") as status_file:
+            project_id = json.load(status_file).get("project_id")
+    except (OSError, json.JSONDecodeError, AttributeError):
+        return ""
+    if not isinstance(project_id, str) or not project_id.strip():
+        return ""
+    return project_id if os.path.isfile(os.path.join(source_dir, f"{project_id}.md")) else ""
+
+
 def run_preflight_message(language, source_dir, project_name, use_subproject,
                           subproject_name, build_pptx, build_video, use_pdf):
     """Return the first unmet prerequisite for enabling the Run button."""
@@ -249,6 +269,19 @@ def run_preflight_message(language, source_dir, project_name, use_subproject,
         return text["pptx_required"]
     if use_pdf and build_video and not os.path.isfile(os.path.join(input_dir, f"{filename}.pdf")):
         return text["pdf_missing"].format(filename=f"{filename}.pdf")
+    expected_project_id = (f"{project_name.strip()}-{subproject_name.strip()}"
+                           if use_subproject else project_name.strip())
+    status_path = os.path.join(input_dir, "status.json")
+    try:
+        with open(status_path, encoding="utf-8") as status_file:
+            stored_project_id = json.load(status_file).get("project_id")
+    except (OSError, json.JSONDecodeError, AttributeError):
+        stored_project_id = None
+    # This duplicates the core validation deliberately: disable Run before
+    # showing the TTS-settings dialog, while retaining the core check for CLI
+    # callers and for files that change after this preflight check.
+    if stored_project_id is not None and stored_project_id != expected_project_id:
+        return text["status_project_id_mismatch"]
     return ""
 
 
@@ -530,8 +563,12 @@ class SlideMovieApp:
     def _make_variables(self):
         tk = self.tk
         initial = self.initial_options
-        self.source_var = tk.StringVar(value=display_source_path(initial.get("source_dir")))
-        self.project_var = tk.StringVar(value=initial.get("project_name", ""))
+        source_dir = display_source_path(initial.get("source_dir"))
+        # A state file is only an appropriate default when it points to the
+        # Markdown file beside it.  An explicit CLI project name wins.
+        project_name = initial.get("project_name") or default_project_name_from_status(source_dir)
+        self.source_var = tk.StringVar(value=source_dir)
+        self.project_var = tk.StringVar(value=project_name)
         self.sub_var = tk.StringVar(value=initial.get("subproject_name", ""))
         self.sub_mode_var = tk.BooleanVar(value=bool(initial.get("subproject_name")))
         output_root = display_path_value(initial, self.settings, self.cli_path_overrides, "output_root")

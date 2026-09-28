@@ -1225,6 +1225,16 @@ class Movie():
         with open(self.status_file, encoding="utf-8") as f:
             state = json.load(f)
 
+        # A state file is tied to the Markdown project in this directory.  Do
+        # not reuse its slide/audio records merely because a status.json was
+        # copied here or a different project name was selected.
+        stored_project_id = state.get("project_id")
+        if stored_project_id is not None and stored_project_id != self.project_id:
+            logger.error(
+                "status.json project ID does not match the current project: "
+                "stored=%r, current=%r.", stored_project_id, self.project_id)
+            sys.exit(1)
+
         # --- build_config check ---
         stored_config = state.get("build_config")
         current_config = self._get_build_config()

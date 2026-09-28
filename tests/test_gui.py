@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 from slidemovie.gui import (apply_stored_tts_config, display_path_value, display_setting_value, open_folder,
                             build_settings_from_status, load_stored_tts_config, official_website_url, options_from_args,
                             display_prompt_separator, display_source_path, parse_prompt_separator, parse_screen_size, project_folder_paths, run_build, SlideMovieApp,
-                            load_local_config, local_config_path, pptx_display_status, run_preflight_message, save_local_config, summarize_status, TEXT)
+                            default_project_name_from_status, load_local_config, local_config_path, pptx_display_status, run_preflight_message, save_local_config, summarize_status, TEXT)
 
 
 def _args(**changes):
@@ -58,6 +58,15 @@ def test_local_config_path_is_next_to_the_subproject_markdown_input():
     assert local_config_path("/work", "chapter-1") == "/work/chapter-1/config.json"
 
 
+def test_status_project_id_is_a_default_only_with_its_matching_markdown(tmp_path):
+    (tmp_path / "status.json").write_text(
+        json.dumps({"project_id": "demo"}), encoding="utf-8")
+    assert default_project_name_from_status(str(tmp_path)) == ""
+
+    (tmp_path / "demo.md").write_text("# Demo", encoding="utf-8")
+    assert default_project_name_from_status(str(tmp_path)) == "demo"
+
+
 def test_pptx_display_status_distinguishes_generated_present_and_missing(tmp_path):
     pptx = tmp_path / "demo.pptx"
     assert pptx_display_status("ja", {"status": "generated"}, str(pptx)) == "未生成"
@@ -85,6 +94,25 @@ def test_run_preflight_checks_project_inputs_in_display_order(tmp_path):
 
     (source / "demo.pdf").write_text("pdf", encoding="utf-8")
     assert run_preflight_message("ja", str(source), "demo", False, "", False, True, True) == ""
+
+
+def test_run_preflight_rejects_a_status_file_for_another_project(tmp_path):
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "demo.md").write_text("# Demo", encoding="utf-8")
+    (source / "status.json").write_text(
+        json.dumps({"project_id": "other-project"}), encoding="utf-8")
+
+    assert run_preflight_message("ja", str(source), "demo", False, "", True, False, False) == (
+        "status.json のプロジェクト ID が現在のプロジェクトと一致しません。")
+
+    child = source / "child"
+    child.mkdir()
+    (child / "child.md").write_text("# Child", encoding="utf-8")
+    (child / "status.json").write_text(
+        json.dumps({"project_id": "parent-other"}), encoding="utf-8")
+    assert run_preflight_message("ja", str(source), "parent", True, "child", True, False, False) == (
+        "status.json のプロジェクト ID が現在のプロジェクトと一致しません。")
 
 
 def test_save_local_config_preserves_unrelated_keys(tmp_path):

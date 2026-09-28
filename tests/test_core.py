@@ -256,3 +256,18 @@ class TestPromptSeparator:
             loaded = movie._load_audio_state()
 
         assert loaded["tts_config"]["prompt_separator"] == ""
+
+    def test_load_state_rejects_a_different_project_id(self, movie, tmp_path, caplog):
+        """A status.json from another Markdown project must not be reused."""
+        movie.project_id = "current-project"
+        movie.status_file = str(tmp_path / "status.json")
+        state = movie._init_audio_state(movie.status_file)
+        state["project_id"] = "other-project"
+        with open(movie.status_file, "w", encoding="utf-8") as f:
+            json.dump(state, f)
+
+        with pytest.raises(SystemExit) as exc_info:
+            movie._load_audio_state()
+
+        assert exc_info.value.code == 1
+        assert "project ID does not match" in caplog.text
