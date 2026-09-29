@@ -310,6 +310,33 @@ def test_action_required_message_is_localized():
     assert TEXT["en"]["action_required"] == "Please select an action."
 
 
+def test_cancelled_result_keeps_run_button_enabled_when_inputs_are_valid():
+    class Variable:
+        def __init__(self):
+            self.value = None
+
+        def set(self, value):
+            self.value = value
+
+    class Button:
+        def __init__(self):
+            self.state = None
+
+        def configure(self, **kwargs):
+            self.state = kwargs["state"]
+
+    app = SimpleNamespace(
+        running=False, language="ja", run_result_message="cancelled",
+        run_result_preflight=None, run_status_var=Variable(), run_button=Button(),
+        _run_preflight_message=lambda: "", _clear_run_result=lambda: None,
+    )
+
+    SlideMovieApp._update_run_state(app)
+
+    assert app.run_status_var.value == TEXT["ja"]["cancelled"]
+    assert app.run_button.state == "normal"
+
+
 def test_open_folder_rejects_a_missing_path(tmp_path):
     assert open_folder(str(tmp_path / "missing")) is False
 

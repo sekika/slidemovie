@@ -1165,14 +1165,17 @@ class SlideMovieApp:
         """Show the first unmet project prerequisite and gate the Run button."""
         if self.running:
             return
-        message = self._run_preflight_message()
+        preflight_message = self._run_preflight_message()
+        message = preflight_message
         if self.run_result_message is not None:
-            if message == self.run_result_preflight:
+            if preflight_message == self.run_result_preflight:
                 message = TEXT[self.language][self.run_result_message]
             else:
                 self._clear_run_result()
         self.run_status_var.set(message)
-        self.run_button.configure(state="disabled" if message else "normal")
+        # A completed result is informative, not a prerequisite failure.  In
+        # particular, keeping "Cancelled" visible must still allow a retry.
+        self.run_button.configure(state="disabled" if preflight_message else "normal")
 
     def _poll_run_preflight(self):
         """Refresh build status or recheck inputs that can change externally."""

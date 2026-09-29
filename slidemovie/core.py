@@ -15,6 +15,18 @@ from datetime import datetime
 logger = logging.getLogger(__name__)
 
 
+def _background_process_kwargs():
+    """Hide child-process console windows when the GUI runs via pythonw.
+
+    On Windows, a console-subsystem executable such as FFmpeg would otherwise
+    briefly create a Command Prompt window for each invocation.  The flag is
+    harmless for command-line use as well, and does not affect macOS/Linux.
+    """
+    if os.name == "nt":
+        return {"creationflags": subprocess.CREATE_NO_WINDOW}
+    return {}
+
+
 class Movie():
     """
     A class to automatically generate narration videos based on PowerPoint slides and Markdown notes.
@@ -693,7 +705,8 @@ class Movie():
         ]
 
         result = subprocess.run(
-            cmd, check=False, capture_output=True, text=True)
+            cmd, check=False, capture_output=True, text=True,
+            **_background_process_kwargs())
 
         if result.returncode != 0:
             logger.error(f"Image normalization failed: {image_path}")
@@ -780,7 +793,9 @@ class Movie():
                 ]
 
                 try:
-                    result = subprocess.run(cmd, check=False, capture_output=True, text=True)
+                    result = subprocess.run(
+                        cmd, check=False, capture_output=True, text=True,
+                        **_background_process_kwargs())
                     self._raise_if_cancelled()
                     if result.returncode != 0:
                         logger.error(f"Video conversion failed: {slide_id}")
@@ -862,7 +877,9 @@ class Movie():
 
                 logger.info(f"Generating {slide_id}.mp4...")
                 try:
-                    result = subprocess.run(cmd, check=False, capture_output=True, text=True)
+                    result = subprocess.run(
+                        cmd, check=False, capture_output=True, text=True,
+                        **_background_process_kwargs())
                     self._raise_if_cancelled()
                     if result.returncode != 0:
                         logger.error(f"MP4 creation failed: {slide_id}")
@@ -991,7 +1008,7 @@ class Movie():
         ]
 
         try:
-            subprocess.run(cmd, check=True)
+            subprocess.run(cmd, check=True, **_background_process_kwargs())
             self._raise_if_cancelled()
 
             # 5. Save results
@@ -1544,7 +1561,8 @@ class Movie():
                 cmd, 
                 check=False,
                 capture_output=True,
-                text=True
+                text=True,
+                **_background_process_kwargs()
             )
             
             if result.returncode != 0:
@@ -1591,17 +1609,17 @@ class Movie():
 
         # --- Start Generation ---
 
-        command = (
-            f'pandoc {self.md_file} '
-            f'--slide-level=1 '
-            f'--resource-path={self.source_dir} '
-            f'-o {self.slide_file}'
-        )
+        command = [
+            "pandoc", self.md_file,
+            "--slide-level=1",
+            f"--resource-path={self.source_dir}",
+            "-o", self.slide_file,
+        ]
 
         logger.info(f'Starting Markdown -> PPTX conversion.')
 
         try:
-            subprocess.check_call(command, shell=True)
+            subprocess.check_call(command, **_background_process_kwargs())
             self._raise_if_cancelled()
 
             # 2. Save state
@@ -1911,5 +1929,6 @@ class Movie():
             capture_output=True,
             text=True,
             check=True,
+            **_background_process_kwargs(),
         )
         return float(result.stdout.strip())

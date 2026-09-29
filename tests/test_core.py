@@ -279,9 +279,10 @@ class TestBuildLogic:
         # Verify call
         mock_run.assert_called_once()
         args, _ = mock_run.call_args
-        command_str = args[0]
-        assert "pandoc" in command_str
-        assert str(md_file) in command_str
+        command = args[0]
+        assert command[0] == "pandoc"
+        assert str(md_file) in command
+        assert "shell" not in mock_run.call_args.kwargs
 
     def test_check_external_tools_missing(self, mocker):
         """Test if program exits when tools are missing."""
