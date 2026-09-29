@@ -1157,11 +1157,15 @@ class SlideMovieApp:
         self.run_button.configure(state="disabled" if message else "normal")
 
     def _poll_run_preflight(self):
-        """Recheck inputs and source files that can change outside the GUI."""
-        if not self.running:
+        """Refresh build status or recheck inputs that can change externally."""
+        if self.running:
+            self.refresh_status()
+            interval = 1000
+        else:
             self._update_run_state()
+            interval = 250
         try:
-            self.root.after(250, self._poll_run_preflight)
+            self.root.after(interval, self._poll_run_preflight)
         except self.tk.TclError:
             # The window has already been destroyed.
             pass
