@@ -1622,6 +1622,19 @@ def main(initial_options=None):
     except tk.TclError as exc:
         print(f"Tkinter is unavailable: {exc}", file=sys.stderr)
         return 1
+    if sys.platform == "darwin":
+        try:
+            # Tk's `tk appname` changes its IPC name, not the macOS menu-bar
+            # title.  When PyObjC is available, set the bundle name used by
+            # Aqua for the application menu.
+            from Foundation import NSBundle
+            bundle = NSBundle.mainBundle()
+            info = bundle.localizedInfoDictionary() or bundle.infoDictionary()
+            if info and info.get("CFBundleName") in (None, "Python"):
+                info["CFBundleName"] = "slidemovie"
+        except Exception:
+            # PyObjC is optional; app bundles also set CFBundleName in Info.plist.
+            pass
     # On macOS, do not map the native window until its Tk widgets have been
     # laid out. Mapping it while it is still empty can leave a white surface
     # until the next pointer-driven redraw.
