@@ -32,7 +32,7 @@
 ## 🎥 Demo
 
 **Watch a video generated entirely by slidemovie:**
-[https://www.youtube.com/watch?v=9ZscwE06Pbo](https://www.youtube.com/watch?v=9ZscwE06Pbo)
+[https://youtu.be/vspXXQzG0is](https://youtu.be/vspXXQzG0is)
 
 ## 🚀 Quick Start
 

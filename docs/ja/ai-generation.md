@@ -79,7 +79,7 @@ Pythonプログラム「slidemovie」を紹介する動画を作成します。�
 実際に上記のプロンプトを使用して AI に生成させた Markdown ファイルと、それをもとに作成された動画の例です。
 
 **完成動画:**
-[https://www.youtube.com/watch?v=mlj-_Tyhn0Q](https://www.youtube.com/watch?v=mlj-_Tyhn0Q)
+[https://youtu.be/jdzELA81ZF8](https://youtu.be/jdzELA81ZF8)
 
 **生成された Markdown ソース:**
 

@@ -9,7 +9,7 @@ lang: en
 
 Before reading the documentation, please watch this 3-minute introduction video. This video itself was generated entirely by **slidemovie** from a simple text file!
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/9ZscwE06Pbo?si=introduction" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/vspXXQzG0is" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 [More examples](https://www.youtube.com/playlist?list=PLHwO4nF1D8aM)
 
