@@ -77,6 +77,7 @@ OFFICIAL_WEBSITES = {
 FEEDBACK_URL = "https://github.com/sekika/slidemovie/issues"
 
 WINDOW_ICON_PATH = Path(__file__).with_name("assets") / "slidemovie.png"
+SPLASH_ICON_PATH = Path(__file__).with_name("assets") / "slidemovie-splash.png"
 FOREST_THEME_PATH = Path(__file__).with_name("assets") / "forest" / "forest-light.tcl"
 GUI_CONFIG_PATH = os.path.join(os.path.expanduser("~"), ".config", "slidemovie", "gui.json")
 
@@ -1597,15 +1598,24 @@ def main(initial_options=None):
     splash = tk.Toplevel(root)
     splash.title("slidemovie")
     splash.resizable(False, False)
+    try:
+        # This pre-sized asset keeps the splash icon exactly 300px wide without
+        # requiring an image-processing dependency when the GUI starts.
+        splash_icon_image = tk.PhotoImage(file=str(SPLASH_ICON_PATH))
+    except tk.TclError:
+        splash_icon_image = None
+    if splash_icon_image is not None:
+        tk.Label(splash, image=splash_icon_image).pack(padx=48, pady=(28, 0))
     splash_label = tk.Label(
         splash,
         text="slidemovie\n\n" + (
-            "起動しています…" if language == "ja" else "Starting…"),
+            "起動しています..." if language == "ja" else "Starting..."),
         padx=48,
-        pady=28,
+        pady=16,
+        font=("TkDefaultFont", 20),
         justify="center",
     )
-    splash_label.pack()
+    splash_label.pack(pady=(0, 28))
     splash.update_idletasks()
     splash_width, splash_height = splash.winfo_width(), splash.winfo_height()
     splash_x = (splash.winfo_screenwidth() - splash_width) // 2
