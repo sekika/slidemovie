@@ -283,7 +283,7 @@ TEXT = {
         "overflow": "On no split", "screen_size": "Screen size", "image_pad_color": "Image padding color", "video_fps": "Video FPS", "silence_sec": "Silence (seconds)", "restore": "Restore settings", "status": "Project status",
         "save_local": "Save to local config", "saved_local": "Saved local config: ", "save_failed": "Could not save local config: ",
         "execution": "Run", "run": "Run", "cancel_run": "Cancel", "clear": "Clear log", "website": "Website", "feedback": "Feedback", "copy_info": "Copy information", "info_copied": "Copied to clipboard", "collecting_info": "Collecting environment information…", "exit": "Exit",
-        "running": "Running", "cancelling": "Cancelling…", "cancelled": "Cancelled", "success": "Succeeded", "failed": "Failed",
+        "running": "Running...", "cancelling": "Cancelling…", "cancelled": "Cancelled", "success": "Succeeded", "failed": "Failed",
         "yes": "Use", "no": "Do not use",
         "missing": "status.json has not been created.", "no_project": "Enter a project name to view status.",
         "invalid": "Please correct the input.", "action_required": "Please select an action.", "folder_not_found": "Folder does not exist.", "done": "Build completed.",
@@ -318,7 +318,7 @@ TEXT = {
         "overflow": "分割不可時", "screen_size": "画面サイズ", "image_pad_color": "画像余白色", "video_fps": "動画 FPS", "silence_sec": "無音時間（秒）", "restore": "設定から戻す", "status": "プロジェクトの状態",
         "save_local": "ローカル設定に保存", "saved_local": "ローカル設定を保存しました: ", "save_failed": "ローカル設定を保存できません: ",
         "execution": "実行", "run": "実行", "cancel_run": "中断", "clear": "ログを消去", "website": "公式サイト", "feedback": "フィードバック", "copy_info": "情報をクリップボードにコピー", "info_copied": "クリップボードにコピーしました", "collecting_info": "環境情報を収集中…", "exit": "終了",
-        "running": "実行中", "cancelling": "中断処理中", "cancelled": "中断しました", "success": "成功", "failed": "失敗",
+        "running": "実行中...", "cancelling": "中断処理中", "cancelled": "中断しました", "success": "成功", "failed": "失敗",
         "yes": "使用する", "no": "使用しない",
         "missing": "status.json はまだ作成されていません。", "no_project": "状態を表示するにはプロジェクト名を入力してください。",
         "invalid": "入力内容を確認してください。", "action_required": "実行内容を選んでください。", "folder_not_found": "フォルダーが存在しません。", "done": "ビルドが完了しました。",
@@ -753,6 +753,7 @@ class SlideMovieApp:
         self.cancel_event = None
         self.running = False
         self.run_state = None
+        self.run_state_message = None
         self.initial_options = initial_options or {"overrides": set()}
         self.language = detect_language()
         self._updating = False
@@ -912,12 +913,16 @@ class SlideMovieApp:
         ))
         # Keep the command and its validation feedback in a separate section.
         self.run_frame = ttk.LabelFrame(self.project_tab); self.run_frame.grid(row=3, column=0, sticky="ew", pady=(8, 0))
+        self.run_frame.columnconfigure(1, weight=1)
         self.run_frame.columnconfigure(3, weight=1)
         self.run_button = ttk.Button(self.run_frame, command=self.start,
                                      state="disabled", style="Run.TButton")
         self.run_button.grid(row=0, column=0, padx=4, pady=(4, 2), sticky="w")
         self.run_state_var = tk.StringVar()
-        self.run_state_label = ttk.Label(self.run_frame, textvariable=self.run_state_var)
+        self.run_state_label = ttk.Label(
+            self.run_frame, textvariable=self.run_state_var,
+            wraplength=max(200, width - 330),
+        )
         self.run_state_label.grid(row=0, column=1, padx=4, pady=(4, 2), sticky="w")
         self.cancel_button = ttk.Button(self.run_frame, command=self._request_cancel)
         self.cancel_button.grid(row=0, column=2, padx=4, pady=(4, 2), sticky="w")
@@ -1062,7 +1067,10 @@ class SlideMovieApp:
         self.use_prompt_combo.set({"yes": text["yes"], "no": text["no"]}[choice])
         self.language_combo.set("日本語" if self.language == "ja" else "English")
         self._updating = False
-        self._set_state("running" if self.running else self.run_state)
+        self._set_state(
+            "running" if self.running else self.run_state,
+            message_key=None if self.running else self.run_state_message,
+        )
         if not self.running:
             self._update_run_state()
 
@@ -1469,12 +1477,14 @@ class SlideMovieApp:
                     self._set_controls("normal")
                     success = event[1] == "success"
                     cancelled = event[1] == "cancelled"
-                    self._set_state("success" if success else "cancelled" if cancelled else "failed")
+                    state = "success" if success else "cancelled" if cancelled else "failed"
+                    message_key = (
+                        "done" if success else
+                        "failed_message" if not cancelled else None
+                    )
+                    self._set_state(state, message_key=message_key)
                     if success:
                         self.append_log(event[2] or TEXT[self.language]["done"])
-                        messagebox.showinfo(TEXT[self.language]["success"], TEXT[self.language]["done"], parent=self.root)
-                    elif not cancelled:
-                        messagebox.showerror(TEXT[self.language]["failed"], TEXT[self.language]["failed_message"], parent=self.root)
                     self.refresh_status()
         except queue.Empty:
             pass
@@ -1557,9 +1567,11 @@ class SlideMovieApp:
     def clear_log(self):
         self.log.configure(state="normal"); self.log.delete("1.0", "end"); self.log.configure(state="disabled")
 
-    def _set_state(self, state):
+    def _set_state(self, state, message_key=None):
         self.run_state = state
-        self.run_state_var.set(TEXT[self.language][state] if state else "")
+        self.run_state_message = message_key
+        display_key = message_key or state
+        self.run_state_var.set(TEXT[self.language][display_key] if display_key else "")
 
     def _set_controls(self, state):
         for widget in self.interactive_widgets + [self.run_button, self.clear_button, self.exit_button]:
