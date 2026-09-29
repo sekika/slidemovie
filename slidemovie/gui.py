@@ -753,7 +753,8 @@ class SlideMovieApp:
         self.cancel_event = None
         self.running = False
         self.run_state = None
-        self.run_state_message = None
+        self.run_result_message = None
+        self.run_result_preflight = None
         self.initial_options = initial_options or {"overrides": set()}
         self.language = detect_language()
         self._updating = False
@@ -829,7 +830,7 @@ class SlideMovieApp:
         self.use_prompt_var = tk.StringVar()
         self.setting_vars = {name: tk.StringVar() for name in SETTING_NAMES if name not in ("prompt", "prompt_separator")}
         self.status_var = tk.StringVar()
-        self.run_check_var = tk.StringVar()
+        self.run_status_var = tk.StringVar()
 
     def _build(self):
         ttk, tk = self.ttk, self.tk
@@ -889,8 +890,8 @@ class SlideMovieApp:
         self.status_frame.columnconfigure(0, weight=1)
         self.status_label = ttk.Label(self.status_frame, textvariable=self.status_var, justify="left", wraplength=max(250, width - 100)); self.status_label.grid(row=0, column=0, sticky="w", padx=4, pady=4)
         self.action_frame = ttk.LabelFrame(self.project_tab); self.action_frame.grid(row=2, column=0, sticky="ew", pady=(8, 0))
-        self.pptx_check = ttk.Checkbutton(self.action_frame, variable=self.pptx_var, command=self._update_run_state); self.pptx_check.grid(row=0, column=0, padx=4)
-        self.video_check = ttk.Checkbutton(self.action_frame, variable=self.video_var, command=self._update_run_state); self.video_check.grid(row=0, column=1, padx=4)
+        self.pptx_check = ttk.Checkbutton(self.action_frame, variable=self.pptx_var, command=self._run_options_changed); self.pptx_check.grid(row=0, column=0, padx=4)
+        self.video_check = ttk.Checkbutton(self.action_frame, variable=self.video_var, command=self._run_options_changed); self.video_check.grid(row=0, column=1, padx=4)
         # A video source is meaningful only for video generation, so keep its
         # PPTX/PDF selection directly beside that action rather than in its
         # own section.  PPTX is the default unless --pdf was passed.
@@ -899,12 +900,12 @@ class SlideMovieApp:
         self.labels["source_type"] = self.video_source_label
         self.pptx_source_radio = ttk.Radiobutton(
             self.action_frame, text="PPTX", variable=self.pdf_var, value=False,
-            command=self._update_run_state,
+            command=self._run_options_changed,
         )
         self.pptx_source_radio.grid(row=0, column=3, padx=2, sticky="w")
         self.pdf_source_radio = ttk.Radiobutton(
             self.action_frame, text="PDF", variable=self.pdf_var, value=True,
-            command=self._update_run_state,
+            command=self._run_options_changed,
         )
         self.pdf_source_radio.grid(row=0, column=4, padx=2, sticky="w")
         self.interactive_widgets.extend((
@@ -914,21 +915,17 @@ class SlideMovieApp:
         # Keep the command and its validation feedback in a separate section.
         self.run_frame = ttk.LabelFrame(self.project_tab); self.run_frame.grid(row=3, column=0, sticky="ew", pady=(8, 0))
         self.run_frame.columnconfigure(1, weight=1)
-        self.run_frame.columnconfigure(3, weight=1)
         self.run_button = ttk.Button(self.run_frame, command=self.start,
                                      state="disabled", style="Run.TButton")
         self.run_button.grid(row=0, column=0, padx=4, pady=(4, 2), sticky="w")
-        self.run_state_var = tk.StringVar()
-        self.run_state_label = ttk.Label(
-            self.run_frame, textvariable=self.run_state_var,
+        self.run_status_label = ttk.Label(
+            self.run_frame, textvariable=self.run_status_var,
             wraplength=max(200, width - 330),
         )
-        self.run_state_label.grid(row=0, column=1, padx=4, pady=(4, 2), sticky="w")
+        self.run_status_label.grid(row=0, column=1, padx=4, pady=(4, 2), sticky="w")
         self.cancel_button = ttk.Button(self.run_frame, command=self._request_cancel)
         self.cancel_button.grid(row=0, column=2, padx=4, pady=(4, 2), sticky="w")
         self.cancel_button.grid_remove()
-        self.run_check_label = ttk.Label(self.run_frame, textvariable=self.run_check_var, wraplength=max(200, width - 330))
-        self.run_check_label.grid(row=0, column=3, padx=4, pady=(4, 2), sticky="w")
         self.settings_canvas = tk.Canvas(self.settings_tab, highlightthickness=0)
         settings_scroll = ttk.Scrollbar(self.settings_tab, orient="vertical", command=self.settings_canvas.yview)
         self.settings_canvas.configure(yscrollcommand=settings_scroll.set)
@@ -1067,10 +1064,7 @@ class SlideMovieApp:
         self.use_prompt_combo.set({"yes": text["yes"], "no": text["no"]}[choice])
         self.language_combo.set("日本語" if self.language == "ja" else "English")
         self._updating = False
-        self._set_state(
-            "running" if self.running else self.run_state,
-            message_key=None if self.running else self.run_state_message,
-        )
+        self._set_state("running" if self.running else self.run_state)
         if not self.running:
             self._update_run_state()
 
@@ -1145,9 +1139,20 @@ class SlideMovieApp:
 
     def _input_changed(self):
         # The displayed result applies to the previous project only.
+        self._clear_run_result()
         self._set_state(None)
         self.refresh_status()
         self._update_run_state()
+
+    def _run_options_changed(self):
+        """Update the single run-status label for the selected action."""
+        self._clear_run_result()
+        self._set_state(None)
+        self._update_run_state()
+
+    def _clear_run_result(self):
+        self.run_result_message = None
+        self.run_result_preflight = None
 
     def _run_preflight_message(self):
         return run_preflight_message(
@@ -1161,7 +1166,12 @@ class SlideMovieApp:
         if self.running:
             return
         message = self._run_preflight_message()
-        self.run_check_var.set(message)
+        if self.run_result_message is not None:
+            if message == self.run_result_preflight:
+                message = TEXT[self.language][self.run_result_message]
+            else:
+                self._clear_run_result()
+        self.run_status_var.set(message)
         self.run_button.configure(state="disabled" if message else "normal")
 
     def _poll_run_preflight(self):
@@ -1415,6 +1425,8 @@ class SlideMovieApp:
         if not self._validate():
             messagebox.showerror(TEXT[self.language]["invalid"], TEXT[self.language]["invalid"], parent=self.root); return
         self.running = True
+        self._clear_run_result()
+        self.run_status_var.set("")
         self.cancel_event = threading.Event()
         self._set_controls("disabled")
         self._set_state("running")
@@ -1478,11 +1490,17 @@ class SlideMovieApp:
                     success = event[1] == "success"
                     cancelled = event[1] == "cancelled"
                     state = "success" if success else "cancelled" if cancelled else "failed"
-                    message_key = (
-                        "done" if success else
-                        "failed_message" if not cancelled else None
-                    )
-                    self._set_state(state, message_key=message_key)
+                    self._set_state(state)
+                    if success:
+                        self.run_result_message = "done"
+                    elif not cancelled:
+                        self.run_result_message = "failed_message"
+                    else:
+                        self.run_result_message = "cancelled"
+                    if self.run_result_message is not None:
+                        self.run_result_preflight = self._run_preflight_message()
+                        self.run_status_var.set(
+                            TEXT[self.language][self.run_result_message])
                     if success:
                         self.append_log(event[2] or TEXT[self.language]["done"])
                     self.refresh_status()
@@ -1567,11 +1585,9 @@ class SlideMovieApp:
     def clear_log(self):
         self.log.configure(state="normal"); self.log.delete("1.0", "end"); self.log.configure(state="disabled")
 
-    def _set_state(self, state, message_key=None):
+    def _set_state(self, state):
         self.run_state = state
-        self.run_state_message = message_key
-        display_key = message_key or state
-        self.run_state_var.set(TEXT[self.language][display_key] if display_key else "")
+        self.run_status_var.set(TEXT[self.language][state] if state else "")
 
     def _set_controls(self, state):
         for widget in self.interactive_widgets + [self.run_button, self.clear_button, self.exit_button]:
