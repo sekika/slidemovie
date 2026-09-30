@@ -17,6 +17,7 @@ import shutil
 import subprocess
 import sys
 import threading
+import time
 import traceback
 import webbrowser
 
@@ -283,7 +284,7 @@ TEXT = {
         "overflow": "On no split", "screen_size": "Screen size", "image_pad_color": "Image padding color", "video_fps": "Video FPS", "silence_sec": "Silence (seconds)", "restore": "Restore settings", "status": "Project status",
         "save_local": "Save to local config", "saved_local": "Saved local config: ", "save_failed": "Could not save local config: ",
         "execution": "Run", "run": "Run", "cancel_run": "Cancel", "clear": "Clear log", "website": "Website", "feedback": "Feedback", "copy_info": "Copy information", "info_copied": "Copied to clipboard", "collecting_info": "Collecting environment information…", "exit": "Exit",
-        "running": "Running...", "cancelling": "Cancelling…", "cancelled": "Cancelled", "success": "Succeeded", "failed": "Failed",
+        "running": "Running {elapsed}", "cancelling": "Cancelling… {elapsed}", "cancelled": "Cancelled", "success": "Succeeded", "failed": "Failed",
         "yes": "Use", "no": "Do not use",
         "missing": "status.json has not been created.", "no_project": "Enter a project name to view status.",
         "invalid": "Please correct the input.", "action_required": "Please select an action.", "folder_not_found": "Folder does not exist.", "done": "Build completed.",
@@ -318,7 +319,7 @@ TEXT = {
         "overflow": "分割不可時", "screen_size": "画面サイズ", "image_pad_color": "画像余白色", "video_fps": "動画 FPS", "silence_sec": "無音時間（秒）", "restore": "設定から戻す", "status": "プロジェクトの状態",
         "save_local": "ローカル設定に保存", "saved_local": "ローカル設定を保存しました: ", "save_failed": "ローカル設定を保存できません: ",
         "execution": "実行", "run": "実行", "cancel_run": "中断", "clear": "ログを消去", "website": "公式サイト", "feedback": "フィードバック", "copy_info": "情報をクリップボードにコピー", "info_copied": "クリップボードにコピーしました", "collecting_info": "環境情報を収集中…", "exit": "終了",
-        "running": "実行中...", "cancelling": "中断処理中", "cancelled": "中断しました", "success": "成功", "failed": "失敗",
+        "running": "実行中 {elapsed}", "cancelling": "中断処理中 {elapsed}", "cancelled": "中断しました", "success": "成功", "failed": "失敗",
         "yes": "使用する", "no": "使用しない",
         "missing": "status.json はまだ作成されていません。", "no_project": "状態を表示するにはプロジェクト名を入力してください。",
         "invalid": "入力内容を確認してください。", "action_required": "実行内容を選んでください。", "folder_not_found": "フォルダーが存在しません。", "done": "ビルドが完了しました。",
@@ -752,6 +753,7 @@ class SlideMovieApp:
         self.worker = None
         self.cancel_event = None
         self.running = False
+        self.run_started_at = None
         self.run_state = None
         self.run_result_message = None
         self.run_result_preflight = None
@@ -1428,11 +1430,13 @@ class SlideMovieApp:
         if not self._validate():
             messagebox.showerror(TEXT[self.language]["invalid"], TEXT[self.language]["invalid"], parent=self.root); return
         self.running = True
+        self.run_started_at = time.monotonic()
         self._clear_run_result()
         self.run_status_var.set("")
         self.cancel_event = threading.Event()
         self._set_controls("disabled")
         self._set_state("running")
+        self.root.after(1000, self._update_elapsed_status)
         self.cancel_button.grid()
         options = self._options()
         tts_conflict_choice = {"value": None}
@@ -1510,6 +1514,24 @@ class SlideMovieApp:
         except queue.Empty:
             pass
         self.root.after(100, self._poll_events)
+
+    def _elapsed_text(self):
+        """Return elapsed run time as MM:SS, or HH:MM:SS for long builds."""
+        started_at = getattr(self, "run_started_at", None)
+        elapsed = max(0, int(time.monotonic() - started_at)) if started_at else 0
+        hours, remainder = divmod(elapsed, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}" if hours else f"{minutes:02d}:{seconds:02d}"
+
+    def _update_elapsed_status(self):
+        """Refresh the running label once a second without blocking Tk."""
+        if not self.running:
+            return
+        self._set_state(self.run_state or "running")
+        try:
+            self.root.after(1000, self._update_elapsed_status)
+        except self.tk.TclError:
+            pass
 
     def _ask_tts_conflict(self, _stored, _current):
         """Ask on the Tk thread whether to preserve or replace recorded TTS settings."""
@@ -1590,7 +1612,11 @@ class SlideMovieApp:
 
     def _set_state(self, state):
         self.run_state = state
-        self.run_status_var.set(TEXT[self.language][state] if state else "")
+        if state in ("running", "cancelling"):
+            self.run_status_var.set(
+                TEXT[self.language][state].format(elapsed=self._elapsed_text()))
+        else:
+            self.run_status_var.set(TEXT[self.language][state] if state else "")
 
     def _set_controls(self, state):
         for widget in self.interactive_widgets + [self.run_button, self.clear_button, self.exit_button]:
