@@ -294,6 +294,7 @@ TEXT = {
         "markdown_missing": "Markdown file ({filename}) does not exist.", "pptx_required": "Build the PPTX first.", "pdf_missing": "PDF file ({filename}) does not exist.",
         "status_project_id_mismatch": "status.json belongs to a different project.",
         "failed_message": "Build failed. See the log for details.",
+        "retry_after_24_hours": "Retry after 24 hours",
         "confirm": "TTS settings differ from status.json. Choose which settings to use.",
         "use_status": "Use status.json settings", "overwrite": "Overwrite with current settings",
         "cancel": "Cancel",
@@ -328,7 +329,8 @@ TEXT = {
         "subfolder_required": "ソースフォルダー直下のフォルダーを選択してください。",
         "markdown_missing": "マークダウンファイル ({filename}) が存在しません。", "pptx_required": "まずは PPTX を生成してください。", "pdf_missing": "PDFファイル ({filename}) が存在しません。",
         "status_project_id_mismatch": "status.json のプロジェクト ID が現在のプロジェクトと一致しません。",
-        "failed_message": "ビルドに失敗しました。詳細はログを確認してください。",
+        "failed_message": "ビルドに失敗しました。詳細はログ参照。",
+        "retry_after_24_hours": "24時間後に再開",
         "confirm": "TTS 設定が status.json と異なります。使用する設定を選択してください。",
         "use_status": "status.json の設定を使う", "overwrite": "現在の設定で上書きする",
         "cancel": "キャンセル",
@@ -833,6 +835,7 @@ class SlideMovieApp:
         self.setting_vars = {name: tk.StringVar() for name in SETTING_NAMES if name not in ("prompt", "prompt_separator")}
         self.status_var = tk.StringVar()
         self.run_status_var = tk.StringVar()
+        self.retry_after_failure_var = tk.BooleanVar(value=False)
 
     def _build(self):
         ttk, tk = self.ttk, self.tk
@@ -925,6 +928,19 @@ class SlideMovieApp:
             wraplength=max(200, width - 330),
         )
         self.run_status_label.grid(row=0, column=1, padx=4, pady=(4, 2), sticky="w")
+        self.retry_after_failure_check = ttk.Checkbutton(
+            self.run_frame,
+            text=TEXT[self.language]["retry_after_24_hours"],
+            variable=self.retry_after_failure_var,
+            command=self._retry_after_failure_changed,
+        )
+        self.retry_after_failure_check.grid(
+            row=1, column=1, padx=4, pady=(0, 4), sticky="w")
+        self.retry_after_failure_check.grid_remove()
+        self.retry_after_failure_visible = False
+        self.retry_after_failure_after_id = None
+        self._last_run_status_text = self.run_status_var.get()
+        self.run_status_var.trace_add("write", self._run_status_changed)
         self.cancel_button = ttk.Button(self.run_frame, command=self._request_cancel)
         self.cancel_button.grid(row=0, column=2, padx=4, pady=(4, 2), sticky="w")
         self.cancel_button.grid_remove()
@@ -1062,6 +1078,7 @@ class SlideMovieApp:
         self.pptx_check.configure(text=text["pptx"]); self.video_check.configure(text=text["video"]); self.debug_check.configure(text=text["debug"])
         self.use_prompt_label.configure(text=text["use_prompt"]); self.prompt_label.configure(text=text["prompt"]); self.separator_label.configure(text=text["separator"])
         self.restore_button.configure(text=text["restore"]); self.save_local_button.configure(text=text["save_local"]); self.run_button.configure(text=text["run"]); self.cancel_button.configure(text=text["cancel_run"]); self.clear_button.configure(text=text["clear"]); self.about_website_button.configure(text=text["website"]); self.feedback_button.configure(text=text["feedback"]); self.copy_info_button.configure(text=text["copy_info"]); self.exit_button.configure(text=text["exit"])
+        self.retry_after_failure_check.configure(text=text["retry_after_24_hours"])
         self.use_prompt_combo.configure(values=(text["yes"], text["no"]))
         self.use_prompt_combo.set({"yes": text["yes"], "no": text["no"]}[choice])
         self.language_combo.set("日本語" if self.language == "ja" else "English")
@@ -1508,6 +1525,10 @@ class SlideMovieApp:
                         self.run_result_preflight = self._run_preflight_message()
                         self.run_status_var.set(
                             TEXT[self.language][self.run_result_message])
+                    if not success and not cancelled:
+                        self._show_retry_after_failure()
+                        if self.retry_after_failure_var.get():
+                            self._schedule_retry_after_failure()
                     if success:
                         self.append_log(event[2] or TEXT[self.language]["done"])
                     self.refresh_status()
@@ -1522,6 +1543,49 @@ class SlideMovieApp:
         hours, remainder = divmod(elapsed, 3600)
         minutes, seconds = divmod(remainder, 60)
         return f"{hours:02d}:{minutes:02d}:{seconds:02d}" if hours else f"{minutes:02d}:{seconds:02d}"
+
+    def _run_status_changed(self, *_args):
+        """Hide the retry control whenever the displayed status changes."""
+        current = self.run_status_var.get()
+        if current != self._last_run_status_text:
+            self._last_run_status_text = current
+            self._hide_retry_after_failure()
+
+    def _hide_retry_after_failure(self):
+        self.retry_after_failure_check.grid_remove()
+        self.retry_after_failure_visible = False
+        self._cancel_retry_after_failure()
+
+    def _show_retry_after_failure(self):
+        self.retry_after_failure_check.grid()
+        self.retry_after_failure_visible = True
+
+    def _retry_after_failure_changed(self):
+        if self.retry_after_failure_var.get() and self.retry_after_failure_visible:
+            self._schedule_retry_after_failure()
+        else:
+            self._cancel_retry_after_failure()
+
+    def _schedule_retry_after_failure(self):
+        if self.retry_after_failure_after_id is None:
+            self.retry_after_failure_after_id = self.root.after(
+                24 * 60 * 60 * 1000, self._retry_after_failure)
+
+    def _cancel_retry_after_failure(self):
+        after_id = self.retry_after_failure_after_id
+        self.retry_after_failure_after_id = None
+        if after_id is not None:
+            try:
+                self.root.after_cancel(after_id)
+            except self.tk.TclError:
+                pass
+
+    def _retry_after_failure(self):
+        self.retry_after_failure_after_id = None
+        if (self.retry_after_failure_var.get()
+                and self.retry_after_failure_visible
+                and self.run_result_message == "failed_message"):
+            self.start()
 
     def _update_elapsed_status(self):
         """Refresh the running label once a second without blocking Tk."""
