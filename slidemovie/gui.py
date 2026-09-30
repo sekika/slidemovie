@@ -81,6 +81,7 @@ WINDOW_ICON_PATH = Path(__file__).with_name("assets") / "slidemovie.png"
 SPLASH_ICON_PATH = Path(__file__).with_name("assets") / "slidemovie-splash.png"
 FOREST_THEME_PATH = Path(__file__).with_name("assets") / "forest" / "forest-light.tcl"
 GUI_CONFIG_PATH = os.path.join(os.path.expanduser("~"), ".config", "slidemovie", "gui.json")
+USER_CONFIG_PATH = os.path.join(os.path.expanduser("~"), ".config", "slidemovie", "config.json")
 
 
 def gui_title():
@@ -763,6 +764,7 @@ class SlideMovieApp:
         self.language = detect_language()
         self._updating = False
         self.overrides = set(self.initial_options.get("overrides", set()))
+        self.cli_setting_overrides = set(self.overrides)
         self.path_overrides = {name for name in ("output_root", "output_filename") if name in self.overrides}
         # Keep CLI path choices separate from paths loaded from config.json:
         # only an explicit CLI argument should hide a configured initial value.
@@ -786,19 +788,52 @@ class SlideMovieApp:
 
     def _load_settings(self):
         movie = self.movie_factory()
-        self.settings = {name: getattr(movie, name, None) for name in SETTING_NAMES}
-        self.settings["tts_use_prompt"] = getattr(movie, "tts_use_prompt", True)
-        self.settings["output_root"] = getattr(movie, "output_root", None)
-        self.settings["output_filename"] = getattr(movie, "output_filename", None)
-        # The local config belongs beside the Markdown input.  This differs
-        # from source_dir when the selected project is a subproject.
-        config_path = local_config_path(
+        get_defaults = getattr(movie, "_get_default_settings", None)
+        if callable(get_defaults):
+            self.default_settings = get_defaults()
+        else:
+            self.default_settings = {
+                name: getattr(movie, name, None)
+                for name in (*SETTING_NAMES, "tts_use_prompt", "output_root", "output_filename")
+            }
+        self._reload_selected_local_config(
             self.initial_options.get("source_dir"),
             self.initial_options.get("subproject_name", ""),
+            bool(self.initial_options.get("subproject_name")),
         )
+
+    def _reload_selected_local_config(self, source_dir, subproject_name="",
+                                      use_subproject=False):
+        """Merge defaults, user config, then config beside the selected input."""
+        self.settings = dict(self.default_settings)
+        self.overrides = set(self.cli_setting_overrides)
+        self.path_overrides = set(self.cli_path_overrides)
+        try:
+            user_settings = load_local_config(USER_CONFIG_PATH)
+            self.settings.update(user_settings)
+            if user_settings:
+                logging.getLogger(__name__).info(
+                    "Loaded user config: %s", USER_CONFIG_PATH)
+            self.overrides.update(
+                name for name in user_settings
+                if name in SETTING_NAMES or name == "tts_use_prompt"
+            )
+            self.path_overrides.update(
+                name for name in ("output_root", "output_filename")
+                if name in user_settings
+            )
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            logging.getLogger(__name__).warning(
+                "Could not load user config %s: %s", USER_CONFIG_PATH, exc)
+
+        selected_subproject = subproject_name.strip() if use_subproject else ""
+        config_path = local_config_path(source_dir, selected_subproject)
         try:
             local_settings = load_local_config(config_path)
             self.settings.update(local_settings)
+            if local_settings:
+                logging.getLogger(__name__).info(
+                    "Loaded project config: %s", config_path)
             # Movie is created before project paths are configured, so it
             # cannot discover a config beside an arbitrary input file on its
             # own.  Pass every locally configured GUI setting explicitly to
@@ -809,6 +844,8 @@ class SlideMovieApp:
             )
             if "output_filename" in local_settings:
                 self.path_overrides.add("output_filename")
+            if "output_root" in local_settings:
+                self.path_overrides.add("output_root")
         except (OSError, ValueError, json.JSONDecodeError) as exc:
             logging.getLogger(__name__).warning("Could not load local config %s: %s", config_path, exc)
 
@@ -1093,6 +1130,11 @@ class SlideMovieApp:
 
     def _populate(self):
         self._updating = True
+        for name in ("output_root", "output_filename"):
+            if name not in self.cli_path_overrides:
+                value = self.settings.get(name) or ""
+                variable = self.output_var if name == "output_root" else self.filename_var
+                variable.set(value)
         for name, variable in self.setting_vars.items():
             value = self.initial_options[name] if name in self.overrides and name in self.initial_options else self.settings.get(name)
             variable.set(display_setting_value(name, value))
@@ -1128,8 +1170,8 @@ class SlideMovieApp:
             self._mark_override(name); widget.edit_modified(False)
 
     def restore_settings(self):
-        self.overrides.difference_update(set(SETTING_NAMES) | {"tts_use_prompt"})
-        self.initial_options = {**self.initial_options, "overrides": self.overrides}
+        self._reload_selected_local_config(
+            self.source_var.get(), self.sub_var.get(), self.sub_mode_var.get())
         self._populate()
 
     def _toggle_sub(self):
@@ -1158,6 +1200,9 @@ class SlideMovieApp:
 
     def _input_changed(self):
         # The displayed result applies to the previous project only.
+        self._reload_selected_local_config(
+            self.source_var.get(), self.sub_var.get(), self.sub_mode_var.get())
+        self._populate()
         self._clear_run_result()
         self._set_state(None)
         self.refresh_status()
