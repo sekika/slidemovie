@@ -1232,7 +1232,12 @@ class SlideMovieApp:
         preflight_message = self._run_preflight_message()
         message = preflight_message
         if self.run_result_message is not None:
-            if preflight_message == self.run_result_preflight:
+            # ``None`` is the legacy/uninitialized snapshot value.  It must
+            # not discard a completed result merely because the current,
+            # valid preflight state is represented by the empty string.
+            if (preflight_message == self.run_result_preflight
+                    or (self.run_result_preflight is None
+                        and not preflight_message)):
                 message = TEXT[self.language][self.run_result_message]
             else:
                 self._clear_run_result()
