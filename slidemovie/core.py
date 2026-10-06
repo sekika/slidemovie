@@ -1750,15 +1750,28 @@ class Movie():
             # the user can start the engine.
             is_voicevox_unreachable = self.tts_provider == 'voicevox'
 
-            if ('RESOURCE_EXHAUSTED' in error_message or is_split_failure
-                    or is_voicevox_unreachable):
+            error_lower = error_message.lower()
+            is_rate_limited = any(marker in error_lower for marker in (
+                'resource_exhausted', 'too_many_requests',
+                'rate limit exceeded', 'rate_limit_exceeded', 'quota exceeded',
+            ))
+
+            if (is_rate_limited or is_split_failure or is_voicevox_unreachable):
                 logger.error(error_message)
-                sys.exit()
-            else:
-                logger.error(
-                    f'[prompt] {style_prompt}\n[text] {text}\n'
-                    f'{error_message}\nWaiting for 3 minutes and retry...')
+                sys.exit(1)
+
+            logger.error(
+                f'[prompt] {style_prompt}\n[text] {text}\n{error_message}')
+            if attempt < self.max_retry - 1:
+                logger.error('Waiting for 3 minutes and retry...')
                 time.sleep(180)
+
+        # A TTS provider can report failures through ``client.error`` instead
+        # of raising an exception.  Do not let an exhausted retry loop look
+        # successful to build_slide_audio(), which would otherwise mark an
+        # old or missing WAV file as generated.
+        logger.error('TTS synthesis failed after %d attempt(s).', self.max_retry)
+        sys.exit(1)
 
     def split_text(self, text, chunk_size=None):
         """

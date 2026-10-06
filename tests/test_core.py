@@ -358,6 +358,36 @@ class TestPromptSeparator:
         _, kwargs = client.save_tts.call_args
         assert kwargs["prompt"] == ""
 
+    def test_speak_exits_after_all_retries_fail(self, movie, mocker):
+        """An exhausted TTS retry loop must fail the build, not return."""
+        client = self._make_tts_client(mocker)
+        client.error = True
+        client.error_message = "temporary TTS failure"
+        movie.max_retry = 2
+        sleep = mocker.patch("slidemovie.core.time.sleep")
+
+        with pytest.raises(SystemExit) as exc_info:
+            movie._speak_to_wav("BODY", "/tmp/out.wav")
+
+        assert exc_info.value.code == 1
+        assert client.save_tts.call_count == 2
+        sleep.assert_called_once_with(180)
+
+    def test_speak_exits_immediately_for_too_many_requests(self, movie, mocker):
+        """A daily-quota response must be returned to the caller immediately."""
+        client = self._make_tts_client(mocker)
+        client.error = True
+        client.error_message = "Error too_many_requests: Rate limit exceeded"
+        movie.max_retry = 2
+        sleep = mocker.patch("slidemovie.core.time.sleep")
+
+        with pytest.raises(SystemExit) as exc_info:
+            movie._speak_to_wav("BODY", "/tmp/out.wav")
+
+        assert exc_info.value.code == 1
+        assert client.save_tts.call_count == 1
+        sleep.assert_not_called()
+
     def test_load_state_backfills_separator(self, movie, tmp_path):
         """Old status.json lacking prompt_separator is backfilled without a change prompt."""
         movie.project_id = "p"
