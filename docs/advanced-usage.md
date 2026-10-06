@@ -95,7 +95,7 @@ While the `prompt` in `config.json` sets the global system instruction for the T
 }
 ```
 
-*   **Effect**: When regenerating audio for this slide, the TTS engine will receive: `Global Prompt` + `Additional Prompt` + `prompt_separator` + `Slide Notes`.
+*   **Effect**: With `tts_prompt_mode: "legacy_inline"`, the TTS engine receives `Global Prompt` + `Additional Prompt` + `prompt_separator` + `Slide Notes`. With `"speech_metadata"`, the two prompts are style metadata and only the slide notes are script text.
 *   **Triggering Regeneration**: After editing `additional_prompt`, you must force regeneration. The easiest way is to change the `"status"` value from `"generated"` to something else (e.g., `"missing"` or `"update"`) in `status.json`.
 
 ### Separating the prompt from the script (`prompt_separator`)
@@ -118,6 +118,8 @@ Both `prompt` and `additional_prompt` stay on the instruction side of the separa
 ```
 
 For English, `"\n\n## Script\n"` works well. The default is `""` (disabled), so existing projects are unaffected. `prompt_separator` is part of the recorded TTS configuration, so changing it triggers the "TTS config change detected" prompt (see [Long narration → Caveats](#caveats)).
+
+For models using structured Google TTS metadata, set `tts_prompt_mode` to `"speech_metadata"` instead. The script and style are already separate in that mode, so `prompt_separator` is ignored; leave it empty and keep `prompt` and `additional_prompt` to speaking-style instructions only.
 
 ## Long narration (automatic chunking)
 
@@ -144,8 +146,8 @@ slidemovie myproject -v --chunk-size 800
 
 The style prompt (`prompt` + any per-slide `additional_prompt`) is passed to the TTS engine **separately** from the spoken text. As a result:
 
-*   The prompt is **re-applied to every chunk**, so the voice/tone stays consistent across the whole narration. This includes any `prompt_separator`, which is part of the style prompt.
-*   `chunk_size` is measured against the **spoken text only** — the prompt (including `prompt_separator`) length never counts toward it.
+*   The prompt is **re-applied to every chunk**, so the voice/tone stays consistent across the whole narration. In `legacy_inline` mode this includes `prompt_separator`; in `speech_metadata` mode the separator is omitted.
+*   `chunk_size` is measured against the **spoken text only** — the prompt (and any legacy `prompt_separator`) length never counts toward it.
 
 ### Caveats
 

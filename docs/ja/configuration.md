@@ -33,6 +33,7 @@ parent: はじめに
 | `tts_provider` | 文字列 | `"google"` | AI プロバイダー (`google`, `openai`, `azure` または `voicevox`)。 |
 | `tts_model` | 文字列 | `"gemini-3.1-flash-tts-preview"` | 使用する具体的なモデル名。Google と OpenAI では使用し、Azure と VOICEVOX では不要。 |
 | `tts_voice` | 文字列 | `"sadaltager"` | 話者 ID (例: OpenAI の場合は `alloy`、Azure で英語の場合は `en-US-AvaMultilingualNeural`)。VOICEVOX では **整数の話者 style ID**（例: `"3"`）。 |
+| `tts_prompt_mode` | 文字列 | `"legacy_inline"` | Google のプロンプト形式。既存の Gemini 互換には `"legacy_inline"`、構造化 TTS メタデータをサポートする任意のモデルで話し方の指示と原稿を分離するには `"speech_metadata"` を指定する。 |
 | `tts_use_prompt`| 真偽値 | `true` | TTS API にシステムプロンプトを送信するかどうか。Google では true, OpenAI・Azure・VOICEVOX では false |
 | `prompt` | 文字列 | `"Please speak..."` | TTS エンジンへのシステム指示（プロンプト）。 |
 | `prompt_separator` | 文字列 | `""` | スタイルプロンプト（`prompt` ＋ スライドごとの `additional_prompt`）と読み上げ本文の間に挿入する区切り文字列。空で無効（デフォルト）。長いプロンプトで原稿の開始位置を明示したい場合に有用（例: `"\n\n## 原稿\n"`）。[スライドごとのカスタムプロンプト](advanced-usage.md#スライドごとのカスタムプロンプト) を参照。 |
@@ -42,6 +43,8 @@ parent: はじめに
 | `tts_voicevox_url` | 文字列 / null | `null` | VOICEVOX エンジンの URL。`null` の場合は既定値（`http://127.0.0.1:50021`）を使用する。`tts_provider` が `voicevox` のときのみ使用される。 |
 
 > **VOICEVOX について:** [VOICEVOX](https://voicevox.hiroshiba.jp/) は**ローカルエンジン**として動作し、ビルド前に起動しておく必要があります（既定 `http://127.0.0.1:50021`）。API キーは不要で、`tts_model` は無視され、`tts_voice` には整数の話者 style ID を指定します。スタイルプロンプトが読み上げられないよう `tts_use_prompt` は `false` に設定してください。
+
+> **構造化 Google TTS メタデータ:** Gemini 3.8 を含め、API が構造化メタデータをサポートするすべてのモデルで `tts_prompt_mode` を `"speech_metadata"` に設定してください。`prompt` には話し方の指示だけを書きます。このモードでは原稿が別フィールドで送られるため、`prompt_separator` は使用されません。
 
 ### 動画フォーマット
 

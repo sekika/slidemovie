@@ -90,6 +90,7 @@ These options override settings defined in `config.json` for the current run onl
 *   **`--tts-voicevox-url URL`**: VOICEVOX engine URL (default `http://127.0.0.1:50021`). Only used with `--tts-provider voicevox`.
 *   **`--prompt TEXT`**: Overrides the system prompt and enables prompt usage (`tts_use_prompt=True`).
 *   **`--no-prompt`**: Disables the use of a system prompt (`tts_use_prompt=False`).
+*   **`--tts-prompt-mode {legacy_inline,speech_metadata}`**: Google prompt format. Use `speech_metadata` with any model that supports structured TTS metadata, including Gemini 3.8.
 *   **`--prompt-separator STR`**: Separator inserted between the style prompt and the spoken text, e.g. `"\n\n## Script\n"` (see [Separating the prompt from the script](advanced-usage.md#separating-the-prompt-from-the-script-prompt_separator)). Empty by default.
 *   **`--chunk-size N`**: Max characters per TTS chunk. Setting this enables automatic splitting of long narration (see [Long narration](advanced-usage.md#long-narration-automatic-chunking)).
 *   **`--split-chars STR`**: Candidate split characters for chunking (default: `。．.!！?？` and newline).

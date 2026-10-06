@@ -17,7 +17,7 @@ def _args(**changes):
         "project_name": None, "source_dir": ".", "sub": None,
         "output_root": None, "filename": None, "pptx": False, "video": False,
         "pdf": False, "debug": False, "tts_provider": None, "tts_model": None,
-        "tts_voice": None, "tts_voicevox_url": None, "prompt": None,
+        "tts_voice": None, "tts_prompt_mode": None, "tts_voicevox_url": None, "prompt": None,
         "no_prompt": False, "prompt_separator": None, "chunk_size": None,
         "split_chars": None, "chunk_overflow": None,
     }
@@ -27,12 +27,14 @@ def _args(**changes):
 
 def test_options_from_args_preserves_only_explicit_overrides():
     options = options_from_args(_args(project_name="demo", video=True,
-                                      tts_provider="openai", prompt="Read clearly"))
+                                      tts_provider="openai", tts_prompt_mode="speech_metadata",
+                                      prompt="Read clearly"))
 
     assert options["project_name"] == "demo"
     assert options["build_video"] is True
     assert options["tts_provider"] == "openai"
-    assert {"tts_provider", "prompt", "tts_use_prompt"} <= options["overrides"]
+    assert options["tts_prompt_mode"] == "speech_metadata"
+    assert {"tts_provider", "tts_prompt_mode", "prompt", "tts_use_prompt"} <= options["overrides"]
     assert "tts_model" not in options["overrides"]
 
 

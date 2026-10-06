@@ -148,6 +148,13 @@ def test_cli_prompt_logic(mock_movie_class):
 
     assert mock_instance.tts_use_prompt is False
 
+def test_cli_tts_prompt_mode(mock_movie_class):
+    mock_instance = mock_movie_class.return_value
+    with patch.object(sys, 'argv', ['slidemovie', 'Proj', '--video',
+                                    '--tts-prompt-mode', 'speech_metadata']):
+        cli.main()
+    assert mock_instance.tts_prompt_mode == 'speech_metadata'
+
 def test_cli_prompt_separator(mock_movie_class):
     """Test that --prompt-separator sets the attribute, including an empty value."""
     mock_instance = mock_movie_class.return_value

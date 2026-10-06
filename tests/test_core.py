@@ -17,12 +17,15 @@ sys.modules['pptxtoimages.tools'] = MagicMock()
 from slidemovie.core import Movie
 
 @pytest.fixture
-def mock_tools(mocker):
+def mock_tools(mocker, tmp_path):
     """
     Mock shutil.which to bypass external tool checks (ffmpeg, pandoc)
     during initialization.
     """
     mocker.patch('shutil.which', return_value='/usr/bin/mocked_tool')
+    # Movie loads a user-level config during construction.  Keep unit tests
+    # independent of whatever prompt mode a developer has configured locally.
+    mocker.patch.dict(os.environ, {"HOME": str(tmp_path)}, clear=False)
 
 @pytest.fixture
 def movie(mock_tools):
@@ -311,6 +314,25 @@ class TestPromptSeparator:
         cfg = movie._get_tts_config()
         assert "prompt_separator" in cfg
         assert cfg["prompt_separator"] == movie.prompt_separator
+
+    def test_speech_metadata_mode_is_forwarded_without_separator(self, movie, mocker):
+        """Gemini 3.8 styles must not contain the legacy script delimiter."""
+        client = self._make_tts_client(mocker)
+        movie.tts_provider = "google"
+        movie.tts_model = "a-future-google-tts-model"
+        movie.tts_prompt_mode = "speech_metadata"
+        movie.tts_use_prompt = True
+        movie.prompt = "SYS"
+        movie.prompt_separator = "\n## Script\n"
+
+        movie._speak_to_wav("BODY", "/tmp/out.wav", additional_prompt="ADD")
+
+        assert client.tts_prompt_mode == "speech_metadata"
+        _, kwargs = client.save_tts.call_args
+        assert kwargs["prompt"] == "SYSADD"
+
+    def test_tts_config_includes_prompt_mode(self, movie):
+        assert movie._get_tts_config()["prompt_mode"] == "legacy_inline"
 
     def test_speak_appends_separator_after_instructions(self, movie, mocker):
         """style prompt = prompt + additional_prompt + prompt_separator."""

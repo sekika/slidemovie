@@ -31,7 +31,7 @@ classifiers = [
     "Topic :: Office/Business :: Office Suites",
 ]
 dependencies = [
-    "multiai-tts",
+    "multiai-tts>=0.5.0",
     "pptxtoimages",
     # multiai imports readline; CPython for Windows does not provide it.
     "pyreadline3; sys_platform == 'win32'"

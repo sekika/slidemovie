@@ -144,6 +144,10 @@ class Movie():
             tts_model (str): TTS model name. Default: 'gemini-3.1-flash-tts-preview'.
             tts_voice (str): Voice setting for TTS. Default: 'sadaltager'.
             tts_use_prompt (bool): Whether to use a system prompt for TTS. Default: True.
+            tts_prompt_mode (str): Google TTS prompt format. ``legacy_inline`` keeps
+                existing Gemini models compatible; ``speech_metadata`` sends the
+                style separately for models that support structured speech
+                metadata. Default: ``legacy_inline``.
             prompt (str): System prompt for TTS generation.
             prompt_separator (str): Separator inserted between the style prompt
                 (prompt + additional_prompt) and the spoken text. Empty disables
@@ -180,6 +184,7 @@ class Movie():
             "tts_model": 'gemini-3.1-flash-tts-preview',
             "tts_voice": 'sadaltager',
             "tts_use_prompt": True,
+            "tts_prompt_mode": "legacy_inline",
             "prompt": 'Please speak the following.',
             "prompt_separator": "",
             "chunk_size": None,
@@ -1400,6 +1405,7 @@ class Movie():
                 "chunk_overflow": "extend",
                 "tts_voicevox_url": None,
                 "prompt_separator": "",
+                "prompt_mode": "legacy_inline",
             }
             backfilled = False
             for key, default in tts_defaults.items():
@@ -1505,6 +1511,7 @@ class Movie():
             "model": self.tts_model,
             "voice": self.tts_voice,
             "use_prompt": self.tts_use_prompt,
+            "prompt_mode": self.tts_prompt_mode,
             "prompt": self.prompt,
             "prompt_separator": self.prompt_separator,
             "chunk_size": self.chunk_size,
@@ -1672,6 +1679,9 @@ class Movie():
         if self.tts_provider == 'google':
             client.set_tts_model(self.tts_provider, self.tts_model)
             client.tts_voice_google = self.tts_voice
+            # multiai-tts 0.5.0 validates this value and maps
+            # ``speech_metadata`` to the provider's structured style field.
+            client.tts_prompt_mode = self.tts_prompt_mode
         if self.tts_provider == 'azure':
             client.set_tts_provider(self.tts_provider)
             client.tts_voice_azure = self.tts_voice
@@ -1694,11 +1704,13 @@ class Movie():
         # Style prompt is kept separate from the spoken text and passed via the
         # `prompt` argument. multiai-tts re-applies it to every chunk and measures
         # `chunk_size` against the spoken text only. Empty disables it (original behavior).
-        # `prompt_separator` is appended after the instructions (prompt +
-        # additional_prompt) so that any per-slide additional_prompt stays on the
-        # instruction side of the separator, not in the spoken-text section.
+        # `prompt_separator` is a legacy-inline delimiter. Structured Gemini
+        # TTS receives the script and style in separate fields, so it must not
+        # be sent as part of the style metadata.
         if self.tts_use_prompt:
-            style_prompt = f'{self.prompt}{additional_prompt}{self.prompt_separator}'
+            separator = (self.prompt_separator if self.tts_prompt_mode == "legacy_inline"
+                         else "")
+            style_prompt = f'{self.prompt}{additional_prompt}{separator}'
         else:
             style_prompt = ''
 

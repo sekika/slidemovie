@@ -23,7 +23,7 @@ import webbrowser
 
 
 SETTING_NAMES = (
-    "tts_provider", "tts_model", "tts_voice", "tts_voicevox_url", "prompt",
+    "tts_provider", "tts_model", "tts_voice", "tts_prompt_mode", "tts_voicevox_url", "prompt",
     "prompt_separator", "chunk_size", "split_chars", "chunk_overflow",
     "screen_size", "image_pad_color", "video_fps", "silence_sec",
 )
@@ -35,6 +35,7 @@ TTS_STATUS_FIELDS = {
     "provider": "tts_provider",
     "model": "tts_model",
     "voice": "tts_voice",
+    "prompt_mode": "tts_prompt_mode",
     "use_prompt": "tts_use_prompt",
     "prompt": "prompt",
     "prompt_separator": "prompt_separator",
@@ -50,6 +51,7 @@ TTS_STATUS_DEFAULTS = {
     "chunk_overflow": "extend",
     "tts_voicevox_url": None,
     "prompt_separator": "",
+    "prompt_mode": "legacy_inline",
 }
 
 
@@ -279,7 +281,7 @@ TEXT = {
         "actions": "Actions", "pptx": "Build PPTX", "video": "Build video",
         "debug": "Debug logging",
         "source_type": "Video source", "tts_settings": "TTS settings", "video_format": "Video format", "general": "General",
-        "provider": "Provider", "model": "Model", "voice": "Voice / style ID",
+        "provider": "Provider", "model": "Model", "voice": "Voice / style ID", "prompt_mode": "Google prompt format",
         "voicevox": "VOICEVOX URL", "prompt": "Style prompt", "use_prompt": "Use prompt",
         "separator": "Prompt separator", "chunk": "Chunk size", "split": "Split characters",
         "overflow": "On no split", "screen_size": "Screen size", "image_pad_color": "Image padding color", "video_fps": "Video FPS", "silence_sec": "Silence (seconds)", "restore": "Restore settings", "status": "Project status",
@@ -315,7 +317,7 @@ TEXT = {
         "actions": "実行内容", "pptx": "PPTX を生成", "video": "動画を生成",
         "debug": "デバッグログ",
         "source_type": "動画ソース", "tts_settings": "TTS 設定", "video_format": "動画フォーマット", "general": "一般",
-        "provider": "プロバイダー", "model": "モデル", "voice": "声 / style ID",
+        "provider": "プロバイダー", "model": "モデル", "voice": "声 / style ID", "prompt_mode": "Google プロンプト形式",
         "voicevox": "VOICEVOX URL", "prompt": "スタイルプロンプト", "use_prompt": "プロンプトを使用",
         "separator": "プロンプト区切り", "chunk": "チャンクサイズ", "split": "分割候補文字",
         "overflow": "分割不可時", "screen_size": "画面サイズ", "image_pad_color": "画像余白色", "video_fps": "動画 FPS", "silence_sec": "無音時間（秒）", "restore": "設定から戻す", "status": "プロジェクトの状態",
@@ -381,7 +383,8 @@ def options_from_args(args):
     }
     mapping = {
         "tts_provider": args.tts_provider, "tts_model": args.tts_model,
-        "tts_voice": args.tts_voice, "tts_voicevox_url": args.tts_voicevox_url,
+        "tts_voice": args.tts_voice, "tts_prompt_mode": args.tts_prompt_mode,
+        "tts_voicevox_url": args.tts_voicevox_url,
         "prompt": args.prompt, "prompt_separator": args.prompt_separator,
         "chunk_size": args.chunk_size, "split_chars": args.split_chars,
         "chunk_overflow": args.chunk_overflow,
@@ -994,17 +997,17 @@ class SlideMovieApp:
         self.settings_frame = ttk.LabelFrame(settings_inner); self.settings_frame.grid(row=0, column=0, sticky="ew")
         settings_inner.columnconfigure(0, weight=1)
         self.settings_frame.columnconfigure(1, weight=1)
-        for row, (key, name) in enumerate((("provider", "tts_provider"), ("model", "tts_model"), ("voice", "tts_voice"), ("voicevox", "tts_voicevox_url"), ("chunk", "chunk_size"), ("split", "split_chars"))):
+        for row, (key, name) in enumerate((("provider", "tts_provider"), ("model", "tts_model"), ("voice", "tts_voice"), ("prompt_mode", "tts_prompt_mode"), ("voicevox", "tts_voicevox_url"), ("chunk", "chunk_size"), ("split", "split_chars"))):
             self._setting_row(row, key, name)
-        self._setting_row(6, "overflow", "chunk_overflow", values=("extend", "error"))
-        self.use_prompt_label = ttk.Label(self.settings_frame); self.use_prompt_label.grid(row=7, column=0, sticky="nw", padx=4, pady=2)
+        self._setting_row(7, "overflow", "chunk_overflow", values=("extend", "error"))
+        self.use_prompt_label = ttk.Label(self.settings_frame); self.use_prompt_label.grid(row=8, column=0, sticky="nw", padx=4, pady=2)
         self.use_prompt_combo = ttk.Combobox(self.settings_frame, state="readonly", textvariable=self.use_prompt_var)
-        self.use_prompt_combo.grid(row=7, column=1, sticky="ew", padx=4, pady=2)
+        self.use_prompt_combo.grid(row=8, column=1, sticky="ew", padx=4, pady=2)
         self.interactive_widgets.append(self.use_prompt_combo)
-        self.prompt_label = ttk.Label(self.settings_frame); self.prompt_label.grid(row=8, column=0, sticky="nw", padx=4, pady=2)
-        self.prompt_text = tk.Text(self.settings_frame, height=3, width=50); self.prompt_text.grid(row=8, column=1, sticky="ew", padx=4, pady=2)
-        self.separator_label = ttk.Label(self.settings_frame); self.separator_label.grid(row=9, column=0, sticky="nw", padx=4, pady=2)
-        self.separator_text = tk.Text(self.settings_frame, height=2, width=50); self.separator_text.grid(row=9, column=1, sticky="ew", padx=4, pady=2)
+        self.prompt_label = ttk.Label(self.settings_frame); self.prompt_label.grid(row=9, column=0, sticky="nw", padx=4, pady=2)
+        self.prompt_text = tk.Text(self.settings_frame, height=3, width=50); self.prompt_text.grid(row=9, column=1, sticky="ew", padx=4, pady=2)
+        self.separator_label = ttk.Label(self.settings_frame); self.separator_label.grid(row=10, column=0, sticky="nw", padx=4, pady=2)
+        self.separator_text = tk.Text(self.settings_frame, height=2, width=50); self.separator_text.grid(row=10, column=1, sticky="ew", padx=4, pady=2)
         self.interactive_widgets.extend((self.prompt_text, self.separator_text))
         self.video_settings_frame = ttk.LabelFrame(settings_inner); self.video_settings_frame.grid(row=1, column=0, sticky="ew", pady=(8, 0))
         self.video_settings_frame.columnconfigure(1, weight=1)

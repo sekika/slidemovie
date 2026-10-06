@@ -96,7 +96,7 @@ PPTX の下書きを Markdown から作る場合は、`build_all()` の前に `m
 }
 ```
 
-*   **効果**: このスライドの音声を再生成する際、TTS エンジンには `全体プロンプト` + `追加プロンプト` + `prompt_separator` + `スライドの原稿` が送信されます。
+*   **効果**: `tts_prompt_mode: "legacy_inline"` では、TTS エンジンに `全体プロンプト` + `追加プロンプト` + `prompt_separator` + `スライドの原稿` が送信されます。`"speech_metadata"` では、二つのプロンプトはスタイルメタデータとなり、原稿はスライドの原稿だけです。
 *   **再生成のトリガー**: `additional_prompt` を編集した後、再生成をトリガーする必要があります。最も簡単な方法は、`status.json` 内の `"status"` の値を `"generated"` から別の値（例: `"missing"` や `"update"`）に変更することです。
 
 ### プロンプトと原稿の区切り (`prompt_separator`)
@@ -119,6 +119,8 @@ PPTX の下書きを Markdown から作る場合は、`build_all()` の前に `m
 ```
 
 デフォルトは `""`（無効）なので、既存プロジェクトには影響しません。`prompt_separator` は記録される TTS 設定の一部であり、変更すると「TTS config change detected」の確認が表示されます（[長文ナレーション → 注意点](#注意点) を参照）。
+
+構造化 Google TTS メタデータ対応モデルでは、代わりに `tts_prompt_mode` を `"speech_metadata"` に設定します。このモードでは原稿とスタイルがすでに分離されるため、`prompt_separator` は使用されません。空文字列のままにし、`prompt` と `additional_prompt` には話し方の指示だけを書いてください。
 
 ## 長文ナレーションの自動チャンク分割
 
@@ -145,8 +147,8 @@ slidemovie myproject -v --chunk-size 800
 
 スタイルプロンプト（`prompt` とスライドごとの `additional_prompt`）は、読み上げ本文とは **分離して** TTS エンジンに渡されます。その結果:
 
-*   プロンプトは **各チャンクに再適用** されるため、ナレーション全体で声色・口調が一貫します。`prompt_separator` もスタイルプロンプトの一部として各チャンクに適用されます。
-*   `chunk_size` は **読み上げ本文の長さのみ** で評価され、プロンプト長（`prompt_separator` を含む）は含まれません。
+*   プロンプトは **各チャンクに再適用** されるため、ナレーション全体で声色・口調が一貫します。`legacy_inline` では `prompt_separator` も含まれ、`speech_metadata` では区切りを送信しません。
+*   `chunk_size` は **読み上げ本文の長さのみ** で評価され、プロンプト長（従来形式の `prompt_separator` を含む）は含まれません。
 
 ### 注意点
 
