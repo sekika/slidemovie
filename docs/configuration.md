@@ -32,7 +32,7 @@ See [multiai-tts](https://sekika.github.io/multiai-tts/#supported-ai-providers) 
 | `tts_provider` | string | `"google"` | The AI provider (`google`, `openai`, `azure`, or `voicevox`). |
 | `tts_model` | string | `"gemini-3.1-flash-tts-preview"` | The specific model name. Required for Google and OpenAI; ignored for Azure and VOICEVOX. |
 | `tts_voice` | string | `"sadaltager"` | The voice ID (e.g., `alloy` for OpenAI, `en-US-AvaMultilingualNeural` for Azure and English). For VOICEVOX, an **integer speaker style ID** (e.g., `"3"`). |
-| `tts_prompt_mode` | string | `"legacy_inline"` | Google prompt format: `"legacy_inline"` keeps existing Gemini behavior; set `"speech_metadata"` for any model that supports structured TTS metadata, so the style prompt is sent separately from the script. |
+| `tts_prompt_mode` | string | `"legacy_inline"` | Google prompt format: `"legacy_inline"` keeps existing Gemini behavior; set `"speech_metadata"` for models such as Gemini 3.8 TTS that support structured TTS metadata, so the style prompt is sent separately from the script. |
 | `tts_use_prompt`| bool | `true` | Whether to send a system prompt to the TTS API. Set `true` for google and `false` for OpenAI, Azure and VOICEVOX. |
 | `prompt` | string | `"Please speak..."` | The system instruction for the TTS engine. |
 | `prompt_separator` | string | `""` | Separator inserted between the style prompt (`prompt` + per-slide `additional_prompt`) and the spoken text. Empty disables it (default). Useful with long prompts to clearly mark where the script begins — e.g. `"\n\nScript:\n"`. See [Custom Prompt per Slide](advanced-usage.md#custom-prompt-per-slide). |
